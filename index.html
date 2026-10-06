@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arbre des interviews</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1 id="titre">Arbre des interviews</h1>
+    <p id="sous-titre"></p>
+  </header>
+
+  <main>
+    <div class="legende">
+      <span><i class="pastille avec"></i> Interview disponible</span>
+      <span><i class="pastille sans"></i> Interview à venir</span>
+    </div>
+    <div class="arbre-conteneur">
+      <div class="tree" id="arbre" aria-label="Arbre généalogique"></div>
+    </div>
+  </main>
+
+  <dialog id="fiche">
+    <button class="fermer" id="fermer" aria-label="Fermer">&times;</button>
+    <div id="fiche-contenu"></div>
+  </dialog>
+
+  <footer>
+    <p>Mémoire de famille &middot; cliquez sur une personne pour voir ses interviews.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
