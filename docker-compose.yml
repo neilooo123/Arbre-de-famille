@@ -1,0 +1,49 @@
+# Banc d'essai local de la future base de données de l'arbre.
+#
+#   docker compose up -d      → démarre PostgreSQL + l'API (http://localhost:3000)
+#   docker compose down       → arrête (les données sont conservées)
+#   docker compose down -v    → arrête ET efface la base (elle sera recréée depuis data/family.json)
+#
+# PostgREST transforme la base en API web : c'est le même composant que Supabase,
+# ce qui rendra le passage à une base en ligne presque direct.
+# Les ports ne sont ouverts que sur cet ordinateur (127.0.0.1) : rien n'est accessible depuis Internet.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: arbre
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arbre-local}
+      AUTHENTICATOR_PASSWORD: ${AUTHENTICATOR_PASSWORD:-arbre-api-local}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # Scripts exécutés une seule fois, à la création de la base
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      # Données de départ : la base est remplie avec le contenu actuel de data/family.json
+      - ./data/family.json:/seed/family.json:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d arbre"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    image: postgrest/postgrest:v12.2.3
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${AUTHENTICATOR_PASSWORD:-arbre-api-local}@db:5432/arbre
+      PGRST_DB_SCHEMAS: api
+      PGRST_DB_ANON_ROLE: web_anon
+      PGRST_SERVER_PORT: 3000
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  db-data:

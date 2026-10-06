@@ -35,12 +35,21 @@ function renderVideo(video, person) {
     </figure>`;
 }
 
-function eventLine(label, ev) {
-  if (!ev || (!ev.date && !ev.place)) return '';
+const unknown = text => `<span class="unknown">${text}</span>`;
+
+// Naissance ou décès. Avec `always`, la ligne est affichée même vide, en indiquant ce qui est inconnu
+// (pour le décès, une ligne vide veut simplement dire que la personne est vivante).
+function eventLine(label, ev, { always = false } = {}) {
+  const date = ev?.date, place = ev?.place;
+  if (!date && !place && !always) return '';
   // « le 12 avril 1932 » pour une date complète, « en juin 1960 » / « en 1958 » sinon.
-  const when = ev.date && `${String(ev.date).split('-').length === 3 ? 'le' : 'en'} ${formatDate(ev.date)}`;
-  const parts = [when, ev.place && `à ${escapeHtml(ev.place)}`].filter(Boolean);
-  return `<div><dt>${label}</dt><dd>${parts.join(' ')}</dd></div>`;
+  const when = date && `${String(date).split('-').length === 3 ? 'le' : 'en'} ${formatDate(date)}`;
+  const where = place && `à ${escapeHtml(place)}`;
+  const text = when && where ? `${when} ${where}`
+    : when ? `${when}, ${unknown('lieu inconnu')}`
+    : where ? `${unknown('date inconnue')}, ${where}`
+    : unknown('date et lieu inconnus');
+  return `<div><dt>${label}</dt><dd>${text}</dd></div>`;
 }
 
 function chips(title, ids, family) {
@@ -61,12 +70,40 @@ function partnerLabel(ids, family) {
   return sex === 'F' ? 'Conjointe' : sex === 'M' ? 'Conjoint' : 'Conjoint·e';
 }
 
-export function renderProfile(container, family, id) {
+// Boutons d'ajout (mode édition). Certains liens sont impossibles : on explique pourquoi.
+function addSection(family, id) {
+  const parents = family.parentsOf(id).length;
+  const hasParentUnion = !!family.parentUnionOf(id);
+  const button = (relation, label, disabledReason = '') => `
+    <button type="button" class="add-btn" data-add="${relation}" ${disabledReason ? `disabled title="${escapeHtml(disabledReason)}"` : ''}>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>${label}
+    </button>`;
+  return `
+    <div class="person-actions">
+      <button type="button" class="action-btn" data-action="edit">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>Modifier la fiche
+      </button>
+      <button type="button" class="action-btn danger" data-action="delete">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>Supprimer
+      </button>
+    </div>
+    <section class="add-kin" aria-label="Ajouter une personne liée">
+      <h3>Ajouter à l'arbre</h3>
+      <div class="add-buttons">
+        ${button('partner', 'Conjoint')}
+        ${button('child', 'Enfant')}
+        ${button('parent', 'Parent', parents >= 2 ? 'Cette personne a déjà deux parents.' : '')}
+        ${button('sibling', 'Frère ou sœur', hasParentUnion ? '' : "Ajoutez d'abord un parent.")}
+      </div>
+    </section>`;
+}
+
+export function renderProfile(container, family, id, { editing = false } = {}) {
   const p = family.get(id);
   const name = fullName(p);
   const feminine = p.sex === 'F';
-  const born = feminine ? 'Née' : 'Né';
-  const died = feminine ? 'Décédée' : 'Décédé';
+  const born = p.sex ? (feminine ? 'Née' : 'Né') : 'Naissance';
+  const died = p.sex ? (feminine ? 'Décédée' : 'Décédé') : 'Décès';
 
   const bio = (p.bio ?? '').split(/\n\s*\n/).filter(Boolean)
     .map(par => `<p>${escapeHtml(par).replace(/\n/g, '<br>')}</p>`).join('');
@@ -80,17 +117,22 @@ export function renderProfile(container, family, id) {
 
   container.innerHTML = `
     <header class="profile-head">
-      <div class="portrait">${p.photo
+      <div class="portrait${p.sex === 'F' ? ' female' : p.sex === 'M' ? ' male' : ''}">${p.photo
         ? `<img src="${escapeHtml(p.photo)}" alt="Portrait de ${escapeHtml(name)}">`
         : `<span aria-hidden="true">${escapeHtml(initials(p))}</span>`}</div>
       <div>
         <h2 id="profile-title">${escapeHtml(name)}</h2>
         ${p.birthName ? `<p class="birthname">${born} ${escapeHtml(p.birthName)}</p>` : ''}
+        ${p.lastName ? '' : `<p class="birthname">${unknown('Nom de famille inconnu')}</p>`}
       </div>
     </header>
-    <dl class="facts">${eventLine(born, p.birth)}${eventLine(died, p.death)}</dl>
+    <dl class="facts">
+      ${eventLine(born, p.birth, { always: true })}${eventLine(died, p.death)}
+      ${p.sex ? '' : `<div><dt>Sexe</dt><dd>${unknown('inconnu')}</dd></div>`}
+    </dl>
+    ${editing ? addSection(family, id) : ''}
     <section class="videos" aria-label="Interviews">${videos}</section>
-    ${bio ? `<section class="bio">${bio}</section>` : ''}
+    <section class="bio">${bio || `<p>${unknown('Histoire inconnue.')}</p>`}</section>
     ${chips('Parents', family.parentsOf(id), family)}
     ${chips(partnerLabel(family.partnersOf(id), family), family.partnersOf(id), family)}
     ${chips('Frères et sœurs', family.siblingsOf(id), family)}

@@ -7,38 +7,88 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Arbre de famille</title>
   <meta name="description" content="Notre arbre de famille, avec les portraits et les interviews de ceux qui nous ont précédés.">
-  <meta name="theme-color" content="#CFE3EE" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0F1B2D" media="(prefers-color-scheme: dark)">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 30v-9' stroke='%236B4F3A' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='13' r='10' fill='%235B7553'/%3E%3C/svg%3E">
+  <meta name="theme-color" content="#F2EADB" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1C1F21" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M9 29C13 23 15 15 22 4' fill='none' stroke='%236B4F3A' stroke-width='2' stroke-linecap='round'/%3E%3Cg fill='%235B7553'%3E%3Cpath d='M13.6 21.5c-4-1-6.6-3.6-7.4-7 3.6.4 6.4 2.8 7.4 7z'/%3E%3Cpath d='M14.2 19.6c3.8-1.2 6.8-.6 9 1.6-3.4 1.4-6.6.8-9-1.6z'/%3E%3Cpath d='M17 13c-3.4-2-4.8-5-4.4-8.4 3 1.8 4.6 4.8 4.4 8.4z'/%3E%3Cpath d='M18 11.4c3-2.6 6.2-3.2 9-2-2.6 2.6-5.8 3.4-9 2z'/%3E%3C/g%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/app.js"></script>
 </head>
-<body>
-  <!-- Ciel, nuages et collines : purement décoratif -->
+<body class="intro-active">
+  <!-- Fond aquarelle sur papier ancien : purement décoratif, dessiné une seule fois -->
   <div class="sky" aria-hidden="true">
-    <svg class="cloud cloud-1" viewBox="0 0 200 80"><use href="#cloud-shape"/></svg>
-    <svg class="cloud cloud-2" viewBox="0 0 200 80"><use href="#cloud-shape"/></svg>
-    <svg class="cloud cloud-3" viewBox="0 0 200 80"><use href="#cloud-shape"/></svg>
-    <svg class="cloud cloud-4" viewBox="0 0 200 80"><use href="#cloud-shape"/></svg>
-    <svg class="hills" viewBox="0 0 1440 220" preserveAspectRatio="none">
-      <path class="hill-far" d="M0,120 C180,60 360,70 540,105 C720,140 900,60 1080,70 C1260,80 1380,110 1440,100 L1440,220 L0,220 Z"/>
-      <path class="hill-near" d="M0,170 C240,120 420,150 640,160 C860,170 1060,120 1260,135 C1360,142 1410,150 1440,150 L1440,220 L0,220 Z"/>
+    <svg class="watercolor" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <!-- Bords irréguliers et estompés, comme un lavis qui a coulé sur le papier -->
+        <filter id="wc-edge" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.009" numOctaves="4" seed="3" result="noise"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="110" xChannelSelector="R" yChannelSelector="G" result="moved"/>
+          <feGaussianBlur in="moved" stdDeviation="7"/>
+        </filter>
+        <filter id="wc-bloom" x="-50%" y="-50%" width="200%" height="200%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="3" seed="8" result="noise"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="140" xChannelSelector="R" yChannelSelector="G" result="moved"/>
+          <feGaussianBlur in="moved" stdDeviation="28"/>
+        </filter>
+        <!-- Grain et irrégularités du papier -->
+        <filter id="paper-grain" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" seed="2" stitchTiles="stitch"/>
+          <feColorMatrix values="0 0 0 0 0.23  0 0 0 0 0.16  0 0 0 0 0.10  0.9 0 0 0 -0.32"/>
+        </filter>
+        <filter id="paper-mottle" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.0035" numOctaves="3" seed="11"/>
+          <feColorMatrix values="0 0 0 0 0.45  0 0 0 0 0.33  0 0 0 0 0.18  0.7 0 0 0 -0.25"/>
+        </filter>
+        <linearGradient id="wash-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" class="stop-sky" stop-opacity="0.62"/>
+          <stop offset="0.55" class="stop-sky" stop-opacity="0.22"/>
+          <stop offset="1" class="stop-sky" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="wash-ground" x1="0" y1="0" x2="1" y2="0.4">
+          <stop offset="0" class="stop-ground" stop-opacity="0.55"/>
+          <stop offset="0.5" class="stop-ochre" stop-opacity="0.5"/>
+          <stop offset="1" class="stop-ground" stop-opacity="0.6"/>
+        </linearGradient>
+      </defs>
+
+      <rect class="paper-mottle" width="1600" height="1000" filter="url(#paper-mottle)"/>
+
+      <!-- Ciel : un lavis bleu délavé, plus soutenu en haut -->
+      <path filter="url(#wc-edge)" fill="url(#wash-sky)"
+            d="M-100,-100 H1700 V560 C1450,520 1300,600 1050,560 C820,525 650,600 420,560 C250,530 80,580 -100,555 Z"/>
+      <!-- Éclaircies : le papier réapparaît là où le pinceau a été essuyé -->
+      <ellipse class="bloom" filter="url(#wc-bloom)" cx="1150" cy="190" rx="260" ry="70"/>
+      <ellipse class="bloom" filter="url(#wc-bloom)" cx="330" cy="320" rx="200" ry="55"/>
+
+      <!-- Lointain : collines bleu-vert à peine posées -->
+      <path class="wash-far" filter="url(#wc-edge)"
+            d="M-100,760 C120,650 330,690 520,720 C720,750 860,640 1080,660 C1290,680 1430,720 1700,690 V1100 H-100 Z"/>
+      <!-- Sol : lavis vert olive et ocre, bord plus foncé là où le pigment s'est accumulé -->
+      <path class="wash-ground" filter="url(#wc-edge)" fill="url(#wash-ground)"
+            d="M-100,850 C200,800 420,830 700,845 C980,860 1200,800 1450,815 C1560,822 1650,835 1700,840 V1100 H-100 Z"/>
+
+      <rect class="paper-grain" width="1600" height="1000" filter="url(#paper-grain)"/>
     </svg>
   </div>
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-    <symbol id="cloud-shape" viewBox="0 0 200 80">
-      <path d="M40,70 C15,70 10,48 30,42 C28,22 55,14 70,28 C80,8 120,6 130,30 C150,20 178,30 172,52 C192,56 188,72 168,72 Z"/>
-    </symbol>
-  </svg>
+
+  <!-- Page d'accueil : disparaît au premier clic ou à la première touche -->
+  <section id="intro" class="intro" role="button" tabindex="0" aria-label="Entrer dans l'arbre de famille">
+    <svg class="intro-logo" viewBox="0 0 32 32" aria-hidden="true"><path class="logo-stem" d="M9 29C13 23 15 15 22 4"/><path class="logo-leaf" d="M13.6 21.5c-4-1-6.6-3.6-7.4-7 3.6.4 6.4 2.8 7.4 7z"/><path class="logo-leaf" d="M14.2 19.6c3.8-1.2 6.8-.6 9 1.6-3.4 1.4-6.6.8-9-1.6z"/><path class="logo-leaf" d="M17 13c-3.4-2-4.8-5-4.4-8.4 3 1.8 4.6 4.8 4.4 8.4z"/><path class="logo-leaf" d="M18 11.4c3-2.6 6.2-3.2 9-2-2.6 2.6-5.8 3.4-9 2z"/></svg>
+    <h1 class="intro-title">Arbre de famille</h1>
+    <p class="intro-tagline">Découvrir les visages et les voix de ceux qui nous ont précédés</p>
+    <p class="intro-cta">
+      <span class="cta-pointer">Cliquez ou appuyez sur une touche pour entrer</span>
+      <span class="cta-touch">Touchez l'écran pour entrer</span>
+    </p>
+  </section>
 
   <header class="site-header">
-    <h1>
-      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 30v-10" class="logo-trunk"/><path d="M16 4c6 0 10 4 10 9 0 5-4 8-10 8S6 18 6 13c0-5 4-9 10-9z" class="logo-crown"/></svg>
+    <p class="site-title">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path class="logo-stem" d="M9 29C13 23 15 15 22 4"/><path class="logo-leaf" d="M13.6 21.5c-4-1-6.6-3.6-7.4-7 3.6.4 6.4 2.8 7.4 7z"/><path class="logo-leaf" d="M14.2 19.6c3.8-1.2 6.8-.6 9 1.6-3.4 1.4-6.6.8-9-1.6z"/><path class="logo-leaf" d="M17 13c-3.4-2-4.8-5-4.4-8.4 3 1.8 4.6 4.8 4.4 8.4z"/><path class="logo-leaf" d="M18 11.4c3-2.6 6.2-3.2 9-2-2.6 2.6-5.8 3.4-9 2z"/></svg>
       Arbre de famille
-    </h1>
+    </p>
     <p>Les visages et les voix de ceux qui nous ont précédés.</p>
   </header>
 
@@ -55,6 +105,14 @@
       <button id="zoom-fit" type="button" aria-label="Voir tout l'arbre">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
       </button>
+      <button id="edit-toggle" type="button" aria-label="Mode édition : ajouter des personnes" aria-pressed="false" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>
+      </button>
+    </div>
+
+    <div id="edit-banner" class="edit-banner" role="status" hidden>
+      <span><strong>Mode édition</strong> · base locale</span>
+      <button id="export-json" type="button">Télécharger family.json</button>
     </div>
 
     <p class="hint">Cliquez sur une personne pour découvrir son histoire · Glissez pour vous déplacer · Molette ou pincement pour zoomer</p>

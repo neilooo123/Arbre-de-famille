@@ -1,25 +1,31 @@
 /* =========================================================
-   Thème « Nature · bois · vent · ciel »
+   Thème « Nature · bois · vent · ciel », façon aquarelle sur papier ancien.
    Toutes les couleurs sont des variables : le mode sombre
    (« nuit en forêt ») ne fait que les redéfinir.
    ========================================================= */
 
 :root {
-  --sky-top: #BBD9EA;
-  --sky-mid: #CFE3EE;
-  --sky-bottom: #F5EFE3;
-  --cloud: #FFFFFF;
-  --cloud-opacity: 0.85;
-  --hill-far: #A9C29A;
-  --hill-near: #7E9C70;
+  /* Papier et lavis d'aquarelle */
+  --paper-bg: #F2EADB;
+  --wash-sky: #7FA3BB;
+  --wash-far: #93A79A;
+  --wash-ground: #7F8F55;
+  --wash-ochre: #B89A5C;
+  --grain-opacity: 0.55;
 
   --moss: #5B7553;
   --moss-dark: #435A3D;
   --leaf-1: #6F8F5F;
   --leaf-2: #8FAE6B;
   --leaf-3: #4F6B47;
+  --autumn-1: #C9822B;
+  --autumn-2: #D9A441;
+  --autumn-3: #B5562E;
   --bark: #6B4F3A;
   --bark-dark: #4E3A2B;
+  --female: #580000;
+  --male: #1F3F00;
+  --twig: #A9845E;
   --wood: #9A7350;
   --wood-light: #C9A57A;
 
@@ -27,7 +33,7 @@
   --paper: #FBF7EF;
   --ink: #2F2A24;
   --ink-soft: #6A6157;
-  --halo: rgba(245, 239, 227, 0.92);
+  --halo: rgba(242, 234, 219, 0.92);
   --shadow: 0 10px 30px rgba(60, 45, 30, 0.18);
   --focus: #2E6FA3;
 
@@ -39,21 +45,24 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --sky-top: #0B1524;
-    --sky-mid: #13233A;
-    --sky-bottom: #1C2A2A;
-    --cloud: #2C3D55;
-    --cloud-opacity: 0.55;
-    --hill-far: #1F3328;
-    --hill-near: #16261D;
+    --paper-bg: #1B1E20;
+    --wash-sky: #34506E;
+    --wash-far: #2D3F3C;
+    --wash-ground: #3E4D2F;
+    --wash-ochre: #5C4C2C;
+    --grain-opacity: 0.9;
 
     --moss: #8FB07F;
     --moss-dark: #A9C79A;
     --leaf-1: #4E6E48;
     --leaf-2: #5F8152;
     --leaf-3: #3D5838;
+    --autumn-1: #A86A2A;
+    --autumn-2: #B2873A;
+    --autumn-3: #8F4527;
     --bark: #8A6A4F;
     --bark-dark: #6E533E;
+    --twig: #A08263;
     --wood: #8C6A4B;
     --wood-light: #B8956C;
 
@@ -61,7 +70,7 @@
     --paper: #1A2420;
     --ink: #EDE6D8;
     --ink-soft: #B3AA9B;
-    --halo: rgba(19, 35, 58, 0.9);
+    --halo: rgba(27, 30, 32, 0.9);
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
     --focus: #8EC5F0;
 
@@ -76,66 +85,30 @@ html, body { height: 100%; margin: 0; }
 body {
   font-family: var(--font-text);
   color: var(--ink);
-  background: var(--sky-bottom);
+  background: var(--paper-bg);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---------- Ciel ---------- */
+/* ---------- Fond aquarelle ---------- */
 
 .sky {
   position: fixed;
   inset: 0;
-  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 45%, var(--sky-bottom) 100%);
+  background: var(--paper-bg);
   overflow: hidden;
   z-index: 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  /* Quelques étoiles */
-  .sky::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 40% 0;
-    background-image:
-      radial-gradient(1.5px 1.5px at 12% 18%, #fff8 50%, transparent 51%),
-      radial-gradient(1px 1px at 27% 8%, #fff7 50%, transparent 51%),
-      radial-gradient(1.5px 1.5px at 44% 26%, #fff6 50%, transparent 51%),
-      radial-gradient(1px 1px at 63% 12%, #fff8 50%, transparent 51%),
-      radial-gradient(2px 2px at 78% 22%, #fff6 50%, transparent 51%),
-      radial-gradient(1px 1px at 89% 6%, #fff7 50%, transparent 51%),
-      radial-gradient(1px 1px at 6% 36%, #fff5 50%, transparent 51%),
-      radial-gradient(1.5px 1.5px at 55% 40%, #fff5 50%, transparent 51%);
-  }
-}
-
-.cloud {
-  position: absolute;
-  left: 0;
-  fill: var(--cloud);
-  opacity: var(--cloud-opacity);
-  animation: drift linear infinite;
+  /* Le fond est coûteux à peindre (filtres) mais immobile : on le garde dans son propre calque. */
   will-change: transform;
 }
-.cloud-1 { top: 8%;  width: 220px; animation-duration: 140s; animation-delay: -30s; }
-.cloud-2 { top: 22%; width: 150px; animation-duration: 190s; animation-delay: -120s; opacity: calc(var(--cloud-opacity) * 0.7); }
-.cloud-3 { top: 4%;  width: 120px; animation-duration: 230s; animation-delay: -60s;  opacity: calc(var(--cloud-opacity) * 0.6); }
-.cloud-4 { top: 34%; width: 260px; animation-duration: 170s; animation-delay: -150s; opacity: calc(var(--cloud-opacity) * 0.5); }
-
-@keyframes drift {
-  from { transform: translateX(-300px); }
-  to   { transform: translateX(calc(100vw + 50px)); }
-}
-
-.hills {
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  width: 100%;
-  height: 22vh;
-  min-height: 120px;
-}
-.hill-far  { fill: var(--hill-far); }
-.hill-near { fill: var(--hill-near); }
+.watercolor { display: block; width: 100%; height: 100%; }
+.watercolor .stop-sky    { stop-color: var(--wash-sky); }
+.watercolor .stop-ground { stop-color: var(--wash-ground); }
+.watercolor .stop-ochre  { stop-color: var(--wash-ochre); }
+.watercolor .bloom       { fill: var(--paper-bg); opacity: 0.75; }
+.watercolor .wash-far    { fill: var(--wash-far); opacity: 0.38; }
+.watercolor .paper-grain { opacity: var(--grain-opacity); }
+.watercolor .paper-mottle { opacity: 0.6; }
 
 /* ---------- En-tête ---------- */
 
@@ -147,7 +120,7 @@ body {
   pointer-events: none;
   max-width: calc(100% - 80px);
 }
-.site-header h1 {
+.site-header .site-title {
   margin: 0;
   display: flex;
   align-items: center;
@@ -159,8 +132,8 @@ body {
   color: var(--bark-dark);
   text-shadow: 0 1px 0 var(--halo);
 }
-@media (prefers-color-scheme: dark) { .site-header h1 { color: var(--ink); } }
-.site-header p {
+@media (prefers-color-scheme: dark) { .site-header .site-title { color: var(--ink); } }
+.site-header p:not(.site-title) {
   margin: 4px 0 0;
   font-family: var(--font-title);
   font-style: italic;
@@ -168,8 +141,8 @@ body {
   color: var(--ink-soft);
 }
 .logo { width: 1.1em; height: 1.1em; flex: none; }
-.logo-trunk { stroke: var(--bark); stroke-width: 3; stroke-linecap: round; fill: none; }
-.logo-crown { fill: var(--moss); }
+.logo-stem { stroke: var(--bark); stroke-width: 1.6; stroke-linecap: round; fill: none; }
+.logo-leaf { fill: var(--moss); }
 
 /* ---------- Scène de l'arbre ---------- */
 
@@ -186,7 +159,8 @@ body {
 }
 #tree.dragging { cursor: grabbing; }
 
-.ground .hill { fill: var(--hill-near); opacity: 0.9; }
+.ground .hill { fill: url(#hill-wash); }
+.hill-wash-stop { stop-color: var(--wash-ground); }
 
 .trunk { fill: var(--bark); }
 .root  { stroke: var(--bark); stroke-width: 7; stroke-linecap: round; fill: none; }
@@ -198,20 +172,19 @@ body {
 }
 .branch.couple { stroke: var(--bark-dark); }
 
-.leaf {
-  transform-box: fill-box;
-  transform-origin: 0 50%;
-  animation: rustle 6s ease-in-out infinite;
+.twig {
+  fill: none;
+  stroke: var(--twig);
+  stroke-linecap: round;
 }
+
 .leaf-1 { fill: var(--leaf-1); }
 .leaf-2 { fill: var(--leaf-2); }
 .leaf-3 { fill: var(--leaf-3); }
-
-/* Le bruissement est appliqué via « rotate » pour ne pas écraser le transform SVG des feuilles. */
-@keyframes rustle {
-  0%, 100% { rotate: 0deg; }
-  50%      { rotate: 12deg; }
-}
+/* En tombant, les feuilles prennent leurs couleurs d'automne (la transition est réglée en JS). */
+.leaf-1.fallen { fill: var(--autumn-1); }
+.leaf-2.fallen { fill: var(--autumn-2); }
+.leaf-3.fallen { fill: var(--autumn-3); }
 
 /* ---------- Personnes ---------- */
 
@@ -222,18 +195,12 @@ body {
   transform-origin: 50% 100%;
   animation: breeze 8s ease-in-out infinite;
 }
-.node:hover .sway,
-.node:focus-visible .sway {
-  animation: gust 1.6s ease-in-out infinite;
-}
+/* Survol : le balancement est piloté en JavaScript (windSway dans tree.js) pour être plus naturel. */
+.node .sway.gusting { animation: none; }
 
 @keyframes breeze {
   0%, 100% { rotate: -0.8deg; }
   50%      { rotate: 0.8deg; }
-}
-@keyframes gust {
-  0%, 100% { rotate: -3deg; }
-  50%      { rotate: 3deg; }
 }
 
 .node .halo { fill: none; stroke: transparent; stroke-width: 4; transition: stroke 0.2s; }
@@ -241,7 +208,13 @@ body {
 .node:focus-visible .halo { stroke: var(--focus); }
 .node.selected .halo { stroke: var(--moss); stroke-width: 5; }
 
-.node .frame { fill: url(#wood); filter: drop-shadow(0 3px 4px rgba(50, 35, 20, 0.35)); }
+.node .shadow { fill: rgba(50, 35, 20, 0.28); }
+.node .frame { fill: url(#wood); }
+/* Médaillons : rouge sombre pour les femmes, vert sombre pour les hommes (bois si non renseigné). */
+.node.female .frame { fill: var(--female); }
+.node.male .frame   { fill: var(--male); }
+.node.female .initials { fill: var(--female); }
+.node.male .initials   { fill: var(--male); }
 .node .inner { fill: var(--cream); }
 .node .initials {
   font-family: var(--font-title);
@@ -262,6 +235,13 @@ body {
 
 .video-badge circle { fill: #B4413A; stroke: var(--cream); stroke-width: 2.5; }
 .video-badge path   { fill: #fff; }
+
+/* Grand arbre : le vent ne souffle que sur la personne survolée (sinon le site rame). */
+#tree.calm .node .sway { animation: none; }
+
+/* Vue de loin : noms et feuilles masqués, ils réapparaissent en zoomant. */
+#tree.calm.far .node text,
+#tree.calm.far .leaves { display: none; }
 
 /* ---------- Commandes & aide ---------- */
 
@@ -393,6 +373,10 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline
   background: linear-gradient(135deg, var(--wood-light), var(--wood) 45%, var(--wood-light) 55%, var(--bark));
   box-shadow: 0 4px 10px rgba(50, 35, 20, 0.3);
 }
+.portrait.female { background: var(--female); }
+.portrait.male   { background: var(--male); }
+.portrait.female span { color: var(--female); }
+.portrait.male span   { color: var(--male); }
 .portrait img, .portrait span {
   width: 100%; height: 100%;
   border-radius: 50%;
@@ -449,6 +433,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline
   fill: none; stroke: var(--moss); stroke-width: 1.6; stroke-linejoin: round;
 }
 
+.unknown { color: var(--ink-soft); font-style: italic; }
 .bio { margin-top: 22px; font-size: 1.02rem; line-height: 1.65; }
 .bio p { margin: 0 0 0.9em; }
 
@@ -489,6 +474,351 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline
   color: var(--moss-dark);
 }
 
+/* ---------- Mode édition ---------- */
+
+.controls button[hidden] { display: none; }
+#edit-toggle[aria-pressed="true"] {
+  background: var(--moss);
+  border-color: var(--moss);
+  color: var(--paper);
+}
+
+.edit-banner {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 16px;
+  border-radius: 999px;
+  background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--moss) 45%, transparent);
+  box-shadow: var(--shadow);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+.edit-banner[hidden] { display: none; }
+.edit-banner strong { color: var(--moss-dark); }
+.edit-banner button, .add-btn, .person-form footer button {
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 999px;
+}
+.edit-banner button {
+  padding: 6px 14px;
+  border: 0;
+  background: var(--moss);
+  color: var(--paper);
+}
+@media (max-width: 759px) {
+  .edit-banner { top: auto; bottom: 16px; left: 16px; transform: none; max-width: calc(100% - 92px); }
+  .edit-banner span { display: none; }
+}
+
+.person-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px 7px 10px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--bark) 35%, transparent);
+  background: var(--paper);
+  color: var(--ink);
+}
+.action-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.action-btn:hover { background: var(--cream); }
+.action-btn.danger { color: #A3372F; border-color: color-mix(in srgb, #A3372F 45%, transparent); }
+.action-btn.danger:hover { background: color-mix(in srgb, #A3372F 10%, var(--paper)); }
+@media (prefers-color-scheme: dark) { .action-btn.danger { color: #E8857C; } }
+
+.add-kin {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1.5px dashed color-mix(in srgb, var(--moss) 55%, transparent);
+}
+.add-kin h3 {
+  margin: 0 0 10px;
+  font-family: var(--font-title);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--moss-dark);
+}
+.add-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--moss) 50%, transparent);
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 0.92rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+.add-btn svg { width: 16px; height: 16px; fill: none; stroke: var(--moss); stroke-width: 2.4; stroke-linecap: round; }
+.add-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--leaf-2) 22%, var(--cream)); border-color: var(--moss); }
+.add-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Formulaire d'ajout */
+.person-form {
+  width: min(620px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 24px 60px rgba(30, 20, 10, 0.35);
+}
+.person-form::backdrop { background: rgba(30, 25, 20, 0.45); }
+.person-form form { display: flex; flex-direction: column; max-height: calc(100vh - 24px); }
+.person-form header {
+  padding: 22px 24px 10px;
+  border-top: 12px solid var(--wood);
+}
+.person-form h2 { margin: 0; font-family: var(--font-title); font-size: 1.8rem; font-weight: 600; }
+.person-form header p { margin: 2px 0 0; color: var(--ink-soft); }
+.form-body { padding: 8px 24px 4px; overflow-y: auto; display: grid; gap: 12px; }
+.person-form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+@media (max-width: 560px) { .person-form .row { grid-template-columns: 1fr; } }
+.field { display: grid; gap: 4px; margin: 0; min-width: 0; }
+.field > span, .field legend { font-weight: 700; font-size: 0.88rem; color: var(--moss-dark); }
+.field small { font-weight: 400; color: var(--ink-soft); }
+.field b { color: #B4413A; }
+.field input, .field select, .field textarea {
+  width: 100%;
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--bark) 30%, transparent);
+  background: var(--cream);
+  color: var(--ink);
+}
+.field textarea { resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.field.sex { border: 0; padding: 0; }
+.field.sex legend { padding: 0; margin-bottom: 4px; }
+.field.sex label { display: inline-flex; align-items: center; gap: 5px; margin: 6px 12px 0 0; font-size: 0.92rem; cursor: pointer; }
+.field.sex input { width: auto; margin: 0; accent-color: var(--moss); }
+/* Choix de la photo */
+.photo-picker {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1.5px dashed color-mix(in srgb, var(--bark) 30%, transparent);
+  transition: background 0.15s, border-color 0.15s;
+}
+.photo-picker.drop { border-color: var(--moss); background: color-mix(in srgb, var(--leaf-2) 15%, transparent); }
+.photo-preview {
+  flex: none;
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  cursor: pointer;
+  background: var(--cream) center / cover no-repeat;
+  box-shadow: inset 0 0 0 4px var(--wood-light);
+  display: grid;
+  place-items: center;
+}
+.photo-preview:not(.has-photo)::after {
+  content: '';
+  width: 30px; height: 30px;
+  opacity: 0.45;
+  background: currentColor;
+  color: var(--bark);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.photo-actions { display: grid; gap: 6px; }
+.photo-actions small { color: var(--ink-soft); }
+.pick-photo { padding: 7px 14px; font: inherit; font-weight: 600; border-radius: 999px; cursor: pointer; }
+.photo-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.photo-rotate { display: inline-flex; gap: 4px; }
+.photo-rotate[hidden] { display: none; }
+.icon-btn {
+  width: 36px; height: 36px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--bark) 35%, transparent);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.icon-btn:hover:not(:disabled) { background: var(--cream); }
+.icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.photo-picker button:disabled { opacity: 0.5; cursor: progress; }
+
+.link-btn {
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: #B4413A;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.form-error {
+  margin: 8px 24px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, #B4413A 14%, var(--paper));
+  color: var(--ink);
+}
+.form-error[hidden] { display: none; }
+/* Avertissement « formulaire incomplet » : petite fenêtre au centre de l'écran, par-dessus le formulaire */
+.form-warning {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(30, 25, 20, 0.35);
+}
+.form-warning[hidden] { display: none; }
+.warning-box {
+  width: min(440px, 100%);
+  padding: 22px 22px 18px;
+  border-radius: 14px;
+  background: var(--paper);
+  border-top: 6px solid var(--autumn-1);
+  box-shadow: 0 20px 50px rgba(30, 20, 10, 0.4);
+  text-align: center;
+  animation: warning-in 0.18s ease-out;
+}
+.warning-icon {
+  width: 34px; height: 34px;
+  fill: none;
+  stroke: var(--autumn-1);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.warning-box p { margin: 8px 0 18px; line-height: 1.55; }
+.warning-box strong { color: var(--ink); }
+.warning-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.warning-buttons button { padding: 9px 18px; font: inherit; font-weight: 600; border-radius: 999px; cursor: pointer; border: 1px solid transparent; }
+@keyframes warning-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .warning-box { animation: none; } }
+.person-form footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px 20px;
+}
+.person-form footer button { padding: 9px 18px; border: 1px solid transparent; }
+.btn-secondary { background: transparent; border-color: color-mix(in srgb, var(--bark) 35%, transparent) !important; color: var(--ink); }
+.btn-primary { background: var(--moss); color: var(--paper); }
+.btn-danger { background: #A3372F; color: #fff; }
+.btn-danger:disabled { opacity: 0.6; cursor: progress; }
+.confirm .form-body p { margin: 0 0 10px; line-height: 1.5; }
+.btn-primary:disabled { opacity: 0.6; cursor: progress; }
+
+/* ---------- Page d'accueil ---------- */
+
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 16px 22vh;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+  transition: opacity 0.9s ease, transform 0.9s ease, visibility 0s linear 0.9s;
+}
+.intro-logo {
+  width: 64px; height: 64px;
+  transform-origin: 50% 100%;
+  animation: breeze 5s ease-in-out infinite;
+}
+.intro-title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: clamp(2.6rem, 8vw, 5.2rem);
+  line-height: 1;
+  color: var(--bark-dark);
+  text-shadow: 0 2px 0 var(--halo);
+}
+@media (prefers-color-scheme: dark) { .intro-title { color: var(--ink); } }
+.intro-tagline {
+  margin: 0;
+  max-width: 34ch;
+  font-family: var(--font-title);
+  font-style: italic;
+  font-size: clamp(1.25rem, 2.8vw, 1.9rem);
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+.intro-cta {
+  margin: 28px 0 0;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--paper) 75%, transparent);
+  font-size: 0.95rem;
+  color: var(--moss-dark);
+  animation: pulse 2.6s ease-in-out infinite;
+}
+.intro:focus-visible .intro-cta { outline: 3px solid var(--focus); outline-offset: 3px; }
+.cta-touch { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .cta-pointer { display: none; }
+  .cta-touch { display: inline; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.65; }
+  50%      { opacity: 1; }
+}
+
+.intro[hidden] { display: none; }
+
+/* Tant que l'accueil est affiché, l'arbre attend en coulisse… */
+.site-header, .stage, .controls, .hint {
+  transition: opacity 1s ease 0.25s, transform 1.2s cubic-bezier(0.22, 0.8, 0.3, 1) 0.25s;
+}
+body.intro-active .site-header,
+body.intro-active .stage,
+body.intro-active .controls,
+body.intro-active .hint {
+  opacity: 0;
+  visibility: hidden;
+}
+body.intro-active .stage { transform: translateY(40px) scale(0.96); }
+
+/* … puis l'accueil s'envole et l'arbre pousse. */
+body:not(.intro-active) .intro {
+  opacity: 0;
+  transform: translateY(-40px);
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* ---------- Mobile ---------- */
 
 @media (max-width: 759px) {
@@ -500,7 +830,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline
 /* ---------- Mouvement réduit ---------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .cloud, .leaf, .node .sway,
-  .node:hover .sway, .node:focus-visible .sway { animation: none; }
-  .profile, .scrim { transition: none; }
+  .node .sway,
+  .intro-logo, .intro-cta { animation: none; }
+  .profile, .scrim, .intro,
+  .site-header, .stage, .controls, .hint { transition: none; }
 }

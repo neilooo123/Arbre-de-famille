@@ -1,20 +1,89 @@
 // Couche d'accès aux données : le seul fichier qui sait d'où viennent les données.
-// Aujourd'hui elles sont lues dans data/family.json. Plus tard, loadFamily() pourra
-// interroger une API (Supabase…) sans toucher au reste du site, tant qu'elle renvoie
-// la même structure (voir indexFamily).
+//  - En local, si la base Docker tourne (voir docker-compose.yml), on lit et on écrit via son API.
+//  - Sinon (et toujours sur GitHub Pages), on lit data/family.json, en lecture seule.
+// Passer plus tard à Supabase ne demandera de modifier que ce fichier : c'est la même API (PostgREST).
+
+import { API_URL } from './config.js';
 
 const DATA_URL = 'data/family.json';
 
+async function fetchJson(url, { timeout = 0, ...options } = {}) {
+  const ctrl = new AbortController();
+  const timer = timeout ? setTimeout(() => ctrl.abort(), timeout) : 0;
+  try {
+    const res = await fetch(url, { cache: 'no-cache', ...options, signal: ctrl.signal });
+    const body = await res.text();
+    const data = body ? JSON.parse(body) : null;
+    // PostgREST renvoie { message, ... } en cas d'erreur
+    if (!res.ok) throw new Error(data?.message || `Erreur HTTP ${res.status} sur ${url}`);
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Renvoie la famille indexée, plus :
+//   source  : 'api' ou 'json'
+//   canEdit : true si on peut ajouter des personnes
+//   raw     : les données brutes (pour l'export en family.json)
 export async function loadFamily() {
-  const res = await fetch(DATA_URL, { cache: 'no-cache' });
-  if (!res.ok) throw new Error(`Impossible de charger ${DATA_URL} (HTTP ${res.status}).`);
+  if (API_URL) {
+    try {
+      const raw = await fetchJson(`${API_URL}/rpc/family`, { timeout: 2500 });
+      return { ...indexFamily(raw), raw, source: 'api', canEdit: true };
+    } catch (err) {
+      console.info(`Base locale indisponible (${err.message}) : lecture de ${DATA_URL}.`);
+    }
+  }
   let raw;
   try {
-    raw = await res.json();
+    raw = await fetchJson(DATA_URL);
   } catch (err) {
-    throw new Error(`Le fichier ${DATA_URL} n'est pas un JSON valide : ${err.message}`);
+    throw new Error(err instanceof SyntaxError
+      ? `Le fichier ${DATA_URL} n'est pas un JSON valide : ${err.message}`
+      : `Impossible de charger ${DATA_URL} (${err.message}).`);
   }
-  return indexFamily(raw);
+  return { ...indexFamily(raw), raw, source: 'json', canEdit: false };
+}
+
+// Ajoute une personne et la relie à l'arbre. `request` : voir api.add_person dans db/init/02-api.sql.
+// Renvoie l'identifiant de la nouvelle personne.
+export async function addPerson(request) {
+  const res = await rpc('add_person', { payload: request });
+  return res.id;
+}
+
+const rpc = (name, args) => fetchJson(`${API_URL}/rpc/${name}`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(args),
+});
+
+// Modifie les informations d'une personne (même format que request.person d'addPerson).
+export async function updatePerson(id, person) {
+  await rpc('update_person', { target_id: id, changes: person });
+  return id;
+}
+
+// Supprime une personne ; ses proches restent dans l'arbre.
+export async function deletePerson(id) {
+  await rpc('delete_person', { target_id: id });
+}
+
+// Contenu à jour de data/family.json (pour publier les ajouts sur GitHub Pages).
+export function familyJson(family) {
+  const prune = obj => Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== null && v !== undefined));
+  const raw = family.raw;
+  return JSON.stringify({
+    persons: raw.persons.map(p => prune({
+      ...p,
+      birth: p.birth ? prune(p.birth) : null,
+      death: p.death ? prune(p.death) : null,
+      videos: (p.videos ?? []).map(prune),
+    })),
+    unions: raw.unions.map(prune),
+    children: raw.children,
+  }, null, 2) + '\n';
 }
 
 // Transforme les trois listes à plat (persons / unions / children) en index pratiques.

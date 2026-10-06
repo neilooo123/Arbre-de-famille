@@ -61,6 +61,10 @@ Pour un parent seul, crée une union avec un seul partenaire : `"partners": ["je
 
 ## Ajouter une photo
 
+**Depuis le site (mode édition)** : dans le formulaire, clique sur **Choisir une photo…** ou glisse une image sur la zone prévue. Elle est recadrée en carré (centré), réduite à 600 × 600 pixels et enregistrée avec la personne : rien d'autre à faire. Les photos HEIC d'iPhone ne sont pas lisibles par les navigateurs : utilise du JPG ou du PNG.
+
+**À la main, dans `family.json`** :
+
 1. Recadre la photo en carré autour du visage.
 2. Réduis-la à environ **800 × 800 pixels** (avec https://squoosh.app par exemple), au format JPG.
 3. Dépose-la dans `images/personnes/`, avec un nom sans espace ni accent : `jean-moreau.jpg`.
@@ -90,6 +94,37 @@ python -m http.server 8000
 
 puis ouvre http://localhost:8000.
 
+## Ajouter des personnes depuis le site (base locale Docker)
+
+Sur ton ordinateur, le site peut s'appuyer sur une vraie base de données (PostgreSQL) qui tourne dans Docker. On ajoute alors les personnes directement depuis l'arbre, sans toucher au JSON.
+
+1. Installe **Docker Desktop** : https://www.docker.com/products/docker-desktop/ (redémarrage demandé).
+2. Dans le dossier du projet, démarre la base (la première fois, elle est remplie avec `data/family.json`) :
+   ```bash
+   docker compose up -d
+   ```
+3. Lance le site (`python -m http.server 8000`) et ouvre http://localhost:8000.
+4. Clique sur le **crayon** en bas à droite pour passer en mode édition. Sur la fiche d'une personne apparaissent :
+   - **Modifier la fiche** : nom, dates, histoire, photo, interview (l'identifiant de la personne ne change pas, même si son nom change) ;
+   - **Supprimer** : après confirmation, la personne disparaît ; ses parents, conjoints et enfants restent dans l'arbre ;
+   - **+ Conjoint**, **+ Enfant**, **+ Parent**, **+ Frère ou sœur** : un formulaire, et la nouvelle personne est placée dans l'arbre selon son lien de parenté.
+
+   Dans le formulaire, une photo choisie peut être pivotée d'un quart de tour à gauche ou à droite.
+5. Pour publier les ajouts sur GitHub Pages : clique sur **Télécharger family.json** (bandeau du haut), remplace `data/family.json` par ce fichier, puis publie.
+
+Commandes utiles :
+
+| Commande | Effet |
+|---|---|
+| `docker compose down` | arrête la base (les données sont conservées) |
+| `docker compose down -v` | efface la base, qui sera recréée depuis `data/family.json` au prochain démarrage |
+
+⚠️ Les scripts de `db/init/` ne s'exécutent qu'à la **création** de la base. Si on les modifie, il faut d'abord télécharger `family.json` (pour garder les ajouts), le copier dans `data/`, puis faire `docker compose down -v` et `docker compose up -d`.
+
+Si la base n'est pas démarrée, le site lit simplement `data/family.json` et le crayon n'apparaît pas. Sur GitHub Pages, le site est toujours en lecture seule.
+
+L'API (PostgREST, port 3000) est la même que celle de Supabase : pour permettre à toute la famille d'ajouter des personnes en ligne, il suffira de recréer ces tables sur Supabase, d'y ajouter des comptes et de changer l'adresse dans `js/config.js`.
+
 ## Publier
 
 Chaque modification envoyée (`git push`) sur la branche `main` met le site en ligne automatiquement en une à deux minutes (GitHub Pages).
@@ -105,7 +140,11 @@ js/app.js           Démarrage et navigation (#/personne/<id>)
 js/data.js          Lecture des données (seul fichier à changer pour passer à une base de données)
 js/tree.js          Disposition et dessin de l'arbre, zoom et déplacement
 js/profile.js       Fiche d'une personne et lecteurs vidéo
+js/editor.js        Formulaire d'ajout d'une personne
+js/config.js        Adresse de l'API de la base locale
 data/family.json    Les données de la famille
+docker-compose.yml  Base de données locale (PostgreSQL + API PostgREST)
+db/init/            Structure de la base, API (ajout de personnes) et import de family.json
 images/personnes/   Les photos
 ```
 

@@ -1,0 +1,4 @@
+# Les scripts lus par Docker (Linux) doivent garder des fins de ligne Unix.
+*.sh  text eol=lf
+*.sql text eol=lf
+*.yml text eol=lf
