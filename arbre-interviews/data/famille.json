@@ -1,0 +1,62 @@
+{
+  "titre": "Les Dupont — Arbre des interviews",
+  "sous_titre": "Exemple à remplacer par les vrais membres de votre famille.",
+  "arbre": {
+    "personne": {
+      "nom": "Henri Dupont",
+      "naissance": "1936",
+      "role": "Arrière-grand-père",
+      "bio": "Texte d'exemple : présentez ici la personne en quelques lignes.",
+      "interviews": []
+    },
+    "conjoint": {
+      "nom": "Marie Dupont",
+      "naissance": "1939",
+      "role": "Arrière-grand-mère",
+      "bio": "Texte d'exemple.",
+      "interviews": [
+        { "titre": "Son enfance à la campagne", "youtube": "", "duree": "12 min" },
+        { "titre": "Sa rencontre avec Henri", "youtube": "", "duree": "8 min" }
+      ]
+    },
+    "enfants": [
+      {
+        "personne": {
+          "nom": "Jean Dupont",
+          "naissance": "1962",
+          "role": "Grand-père",
+          "bio": "Texte d'exemple.",
+          "interviews": [
+            { "titre": "Ses souvenirs d'école", "youtube": "", "duree": "15 min" }
+          ]
+        },
+        "conjoint": {
+          "nom": "Claire Martin",
+          "naissance": "1964",
+          "role": "Grand-mère",
+          "interviews": []
+        },
+        "enfants": [
+          {
+            "personne": { "nom": "Sophie Dupont", "naissance": "1990", "role": "Mère", "interviews": [] },
+            "conjoint": { "nom": "Paul Leroy", "naissance": "1988", "role": "Père", "interviews": [] },
+            "enfants": [
+              { "personne": { "nom": "Léa Leroy", "naissance": "2018", "interviews": [] } }
+            ]
+          },
+          {
+            "personne": { "nom": "Thomas Dupont", "naissance": "1993", "role": "Oncle", "interviews": [] }
+          }
+        ]
+      },
+      {
+        "personne": {
+          "nom": "Anne Dupont",
+          "naissance": "1966",
+          "role": "Grand-tante",
+          "interviews": []
+        }
+      }
+    ]
+  }
+}

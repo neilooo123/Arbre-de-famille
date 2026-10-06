@@ -1,0 +1,165 @@
+:root {
+  --fond: #faf6ef;
+  --encre: #2b2622;
+  --encre-douce: #6b6159;
+  --accent: #a4532f;
+  --accent-clair: #f1dccd;
+  --ligne: #c9b8a6;
+  --carte: #ffffff;
+  --gris: #e7e1d8;
+  --ombre: 0 2px 8px rgba(60, 40, 20, .12);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--encre);
+  font-family: Georgia, "Times New Roman", serif;
+  line-height: 1.5;
+}
+
+header {
+  text-align: center;
+  padding: 2.5rem 1rem 1rem;
+}
+header h1 { margin: 0; font-size: clamp(1.8rem, 5vw, 2.8rem); letter-spacing: .01em; }
+header p { margin: .5rem 0 0; color: var(--encre-douce); font-style: italic; }
+
+main { padding: 0 1rem 2rem; }
+
+.legende {
+  display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;
+  font: .9rem system-ui, sans-serif; color: var(--encre-douce);
+  margin: 1rem 0;
+}
+.pastille {
+  display: inline-block; width: .8rem; height: .8rem; border-radius: 50%;
+  margin-right: .4rem; vertical-align: middle;
+}
+.pastille.avec { background: var(--accent); }
+.pastille.sans { background: var(--gris); border: 1px solid var(--ligne); }
+
+/* ---------- Arbre ---------- */
+.arbre-conteneur { overflow-x: auto; padding-bottom: 1rem; }
+.tree { display: flex; justify-content: center; min-width: max-content; margin: 0 auto; }
+
+.tree ul {
+  display: flex; justify-content: center;
+  padding: 20px 0 0; margin: 0;
+  position: relative;
+}
+.tree > ul { padding-top: 0; }
+.tree li {
+  list-style: none; text-align: center; position: relative;
+  padding: 20px 8px 0;
+}
+.tree > ul > li { padding-top: 0; }
+
+.tree li::before, .tree li::after {
+  content: ""; position: absolute; top: 0; right: 50%;
+  border-top: 2px solid var(--ligne);
+  width: 50%; height: 20px;
+}
+.tree li::after { right: auto; left: 50%; border-left: 2px solid var(--ligne); }
+.tree li:only-child::before, .tree li:only-child::after { display: none; }
+.tree li:only-child { padding-top: 20px; }
+.tree > ul > li::before, .tree > ul > li::after { display: none; }
+.tree li:first-child::before, .tree li:last-child::after { border: 0 none; }
+.tree li:last-child::before { border-right: 2px solid var(--ligne); border-radius: 0 8px 0 0; }
+.tree li:first-child::after { border-radius: 8px 0 0 0; }
+.tree ul ul::before {
+  content: ""; position: absolute; top: 0; left: 50%;
+  border-left: 2px solid var(--ligne); height: 20px;
+}
+
+/* ---------- Couples et cartes ---------- */
+.couple { display: inline-flex; align-items: center; gap: 0; }
+.couple .lien {
+  width: 14px; border-top: 2px solid var(--ligne);
+}
+
+.personne {
+  appearance: none; border: 2px solid var(--gris);
+  background: var(--carte); color: inherit; font: inherit;
+  width: 150px; padding: .7rem .5rem; border-radius: 12px;
+  cursor: pointer; box-shadow: var(--ombre);
+  transition: transform .15s, border-color .15s;
+}
+.personne:hover, .personne:focus-visible {
+  transform: translateY(-2px); border-color: var(--accent); outline: none;
+}
+.personne.avec { border-color: var(--accent); }
+.personne.sans { background: #f4f0e9; color: var(--encre-douce); }
+
+.avatar {
+  width: 64px; height: 64px; border-radius: 50%; margin: 0 auto .4rem;
+  background: var(--accent-clair); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; font-weight: bold; overflow: hidden;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.personne.sans .avatar { background: var(--gris); color: var(--encre-douce); }
+
+.personne .nom { display: block; font-weight: bold; font-size: .95rem; }
+.personne .dates { display: block; font: .8rem system-ui, sans-serif; color: var(--encre-douce); }
+.personne .badge {
+  display: inline-block; margin-top: .35rem; padding: .1rem .5rem;
+  font: .72rem system-ui, sans-serif; border-radius: 999px;
+  background: var(--accent); color: #fff;
+}
+.personne.sans .badge { background: var(--gris); color: var(--encre-douce); }
+
+/* ---------- Fiche (fenêtre vidéo) ---------- */
+dialog {
+  border: 0; border-radius: 16px; padding: 0;
+  width: min(760px, 94vw); max-height: 92vh; overflow: auto;
+  background: var(--fond); color: var(--encre);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .35);
+}
+dialog::backdrop { background: rgba(30, 20, 10, .55); }
+#fiche-contenu { padding: 1.5rem; }
+.fermer {
+  position: absolute; top: .5rem; right: .8rem; z-index: 2;
+  border: 0; background: none; font-size: 2rem; line-height: 1;
+  cursor: pointer; color: var(--encre-douce);
+}
+.fermer:hover { color: var(--accent); }
+
+.fiche-tete { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+.fiche-tete .avatar { width: 80px; height: 80px; margin: 0; font-size: 1.8rem; flex: none; }
+.fiche-tete h2 { margin: 0; }
+.fiche-tete .meta { color: var(--encre-douce); font: .9rem system-ui, sans-serif; }
+.bio { margin: 0 0 1.2rem; }
+
+.lecteur { aspect-ratio: 16 / 9; width: 100%; background: #000; border-radius: 10px; overflow: hidden; }
+.lecteur iframe, .lecteur video { width: 100%; height: 100%; border: 0; display: block; }
+.lecteur-vide {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  color: #ddd; padding: 1rem; font: 1rem system-ui, sans-serif;
+}
+
+.liste-videos { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .5rem; }
+.liste-videos button {
+  width: 100%; text-align: left; cursor: pointer;
+  border: 1px solid var(--gris); background: var(--carte); color: inherit;
+  padding: .6rem .8rem; border-radius: 8px; font: inherit;
+  display: flex; justify-content: space-between; gap: 1rem;
+}
+.liste-videos button:hover, .liste-videos button[aria-current="true"] {
+  border-color: var(--accent); background: var(--accent-clair);
+}
+.liste-videos .duree { color: var(--encre-douce); font: .85rem system-ui, sans-serif; white-space: nowrap; }
+
+.aucune { color: var(--encre-douce); font-style: italic; }
+
+footer {
+  text-align: center; padding: 1.5rem 1rem 2.5rem;
+  color: var(--encre-douce); font: .85rem system-ui, sans-serif;
+}
+
+@media (max-width: 600px) {
+  .personne { width: 124px; }
+  .avatar { width: 52px; height: 52px; }
+}
