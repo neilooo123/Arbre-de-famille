@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Site familial : on demande aux moteurs de recherche de ne pas l'indexer. -->
+  <meta name="robots" content="noindex, nofollow">
+  <title>Arbre de famille</title>
+  <meta name="description" content="Notre arbre de famille, avec les portraits et les interviews de ceux qui nous ont précédés.">
+  <meta name="theme-color" content="#CFE3EE" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0F1B2D" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 30v-9' stroke='%236B4F3A' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='13' r='10' fill='%235B7553'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <!-- Ciel, nuages et collines : purement décoratif -->
+  <div class="sky" aria-hidden="true">
+    <svg class="cloud cloud-1" viewBox="0 0 200 80"><use href="#cloud-shape"/></svg>
+    <svg class="cloud cloud-2" viewBox="0 0 200 80"><use href="#cloud-shape"/></svg>
+    <svg class="cloud cloud-3" viewBox="0 0 200 80"><use href="#cloud-shape"/></svg>
+    <svg class="cloud cloud-4" viewBox="0 0 200 80"><use href="#cloud-shape"/></svg>
+    <svg class="hills" viewBox="0 0 1440 220" preserveAspectRatio="none">
+      <path class="hill-far" d="M0,120 C180,60 360,70 540,105 C720,140 900,60 1080,70 C1260,80 1380,110 1440,100 L1440,220 L0,220 Z"/>
+      <path class="hill-near" d="M0,170 C240,120 420,150 640,160 C860,170 1060,120 1260,135 C1360,142 1410,150 1440,150 L1440,220 L0,220 Z"/>
+    </svg>
+  </div>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="cloud-shape" viewBox="0 0 200 80">
+      <path d="M40,70 C15,70 10,48 30,42 C28,22 55,14 70,28 C80,8 120,6 130,30 C150,20 178,30 172,52 C192,56 188,72 168,72 Z"/>
+    </symbol>
+  </svg>
+
+  <header class="site-header">
+    <h1>
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 30v-10" class="logo-trunk"/><path d="M16 4c6 0 10 4 10 9 0 5-4 8-10 8S6 18 6 13c0-5 4-9 10-9z" class="logo-crown"/></svg>
+      Arbre de famille
+    </h1>
+    <p>Les visages et les voix de ceux qui nous ont précédés.</p>
+  </header>
+
+  <main class="stage">
+    <svg id="tree" aria-label="Arbre généalogique : choisissez une personne pour ouvrir sa fiche"></svg>
+
+    <div class="controls" role="toolbar" aria-label="Navigation dans l'arbre">
+      <button id="zoom-in" type="button" aria-label="Zoomer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button id="zoom-out" type="button" aria-label="Dézoomer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>
+      </button>
+      <button id="zoom-fit" type="button" aria-label="Voir tout l'arbre">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
+      </button>
+    </div>
+
+    <p class="hint">Cliquez sur une personne pour découvrir son histoire · Glissez pour vous déplacer · Molette ou pincement pour zoomer</p>
+
+    <div id="error" class="error" role="alert" hidden>
+      <h2>Le vent a emporté les données…</h2>
+      <p id="error-text"></p>
+    </div>
+  </main>
+
+  <div id="scrim" class="scrim" aria-hidden="true"></div>
+  <aside id="profile" class="profile" role="dialog" aria-labelledby="profile-title" aria-hidden="true" inert>
+    <button class="close" type="button" aria-label="Fermer la fiche">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div id="profile-body" class="profile-body"></div>
+  </aside>
+</body>
+</html>
