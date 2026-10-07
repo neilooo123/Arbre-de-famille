@@ -894,12 +894,9 @@ button.portrait:hover { transform: scale(1.04); }
 .combobox-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .combobox-chevron, .combobox-icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.6; }
 .combobox-popover {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 6px);
-  left: 0;
-  width: max(100%, 280px);
-  max-width: calc(100vw - 32px);
+  /* Flotte par-dessus la page (position calculée en JavaScript : sous le champ, ou au-dessus). */
+  position: fixed;
+  z-index: 50;
   background: var(--paper);
   border: 1px solid color-mix(in srgb, var(--bark) 22%, transparent);
   border-radius: 10px;
@@ -955,8 +952,6 @@ button.portrait:hover { transform: scale(1.04); }
 .combobox-check { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--moss); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; visibility: hidden; }
 .combobox-list li[aria-selected="true"] .combobox-check { visibility: visible; }
 .combobox-empty { margin: 0; padding: 18px 12px; text-align: center; font-size: 0.9rem; color: var(--ink-soft); }
-.combobox-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-.combobox-tags:empty { display: none; }
 .combobox-tag {
   display: inline-flex;
   align-items: center;
@@ -981,16 +976,42 @@ button.portrait:hover { transform: scale(1.04); }
 }
 .combobox-tag button:hover { background: color-mix(in srgb, var(--moss) 25%, transparent); }
 
-/* Dans une fenêtre (formulaire qui défile) : la liste s'ouvre dans le formulaire au lieu de
-   flotter par-dessus, sinon elle serait coupée par le bas de la fenêtre. */
-.person-form .combobox-popover {
-  position: static;
-  width: 100%;
-  max-width: none;
-  margin-top: 6px;
-  box-shadow: 0 2px 8px rgba(40, 30, 20, 0.12);
+@keyframes combobox-in-above { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.combobox-popover.above { animation-name: combobox-in-above; }
+
+/* Choix multiple (« chips ») : étiquettes dans le champ, on tape à la suite */
+.combobox-chips-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 5px 8px;
+  background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--bark) 25%, transparent);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(50, 35, 20, 0.06);
+  cursor: text;
 }
-.person-form .combobox-list { max-height: 220px; }
+.combobox.chips.open .combobox-chips-field,
+.combobox-chips-field:focus-within { outline: 2px solid var(--focus); outline-offset: 1px; }
+.combobox-chip-list { display: contents; }
+.field .combobox-chips-field .combobox-chips-input,
+.field .combobox-chips-field .combobox-chips-input:focus,
+.combobox-chips-input {
+  width: auto;
+  box-shadow: none;
+  border-radius: 0;
+  flex: 1;
+  min-width: 120px;
+  padding: 4px 2px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
 
 /* Recherche d'une personne, sous le titre */
 .site-header .person-search { pointer-events: auto; width: min(300px, calc(100vw - 92px)); margin-top: 10px; }
