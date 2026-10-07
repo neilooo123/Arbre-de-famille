@@ -588,9 +588,9 @@ function setupHeaderToggle() {
   const setCollapsed = collapsed => {
     header.classList.toggle('collapsed', collapsed);
     tab.setAttribute('aria-expanded', String(!collapsed));
-    const label = collapsed ? 'Afficher le titre' : 'Masquer le titre';
-    tab.setAttribute('aria-label', label);
-    tab.dataset.tip = label;
+    // Titre masqué : la bulle invite à rouvrir la recherche (sur téléphone, elle reste affichée sous la flèche).
+    tab.setAttribute('aria-label', collapsed ? 'Afficher le titre et la recherche' : 'Masquer le titre');
+    tab.dataset.tip = collapsed ? 'Rechercher une personne' : 'Masquer le titre';
     try { localStorage.setItem('header-collapsed', collapsed ? '1' : ''); } catch {}
   };
   tab.addEventListener('click', () => setCollapsed(!header.classList.contains('collapsed')));
