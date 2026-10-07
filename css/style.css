@@ -981,6 +981,17 @@ button.portrait:hover { transform: scale(1.04); }
 }
 .combobox-tag button:hover { background: color-mix(in srgb, var(--moss) 25%, transparent); }
 
+/* Dans une fenêtre (formulaire qui défile) : la liste s'ouvre dans le formulaire au lieu de
+   flotter par-dessus, sinon elle serait coupée par le bas de la fenêtre. */
+.person-form .combobox-popover {
+  position: static;
+  width: 100%;
+  max-width: none;
+  margin-top: 6px;
+  box-shadow: 0 2px 8px rgba(40, 30, 20, 0.12);
+}
+.person-form .combobox-list { max-height: 220px; }
+
 /* Recherche d'une personne, sous le titre */
 .site-header .person-search { pointer-events: auto; width: min(300px, calc(100vw - 92px)); margin-top: 10px; }
 .site-header .person-search .combobox-trigger { background: color-mix(in srgb, var(--paper) 92%, transparent); }

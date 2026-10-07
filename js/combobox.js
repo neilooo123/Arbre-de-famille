@@ -92,7 +92,9 @@ export function createCombobox({
     input.value = '';
     active = 0;
     renderList();
-    input.focus();
+    input.focus({ preventScroll: true });
+    // Liste ouverte dans un formulaire qui défile : on la fait apparaître en entier.
+    popover.scrollIntoView({ block: 'nearest' });
   }
 
   function close({ focusTrigger = true } = {}) {
