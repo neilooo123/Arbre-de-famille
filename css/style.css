@@ -1078,6 +1078,12 @@ button.portrait:hover { transform: scale(1.04); }
 /* Recherche d'une personne, sous le titre */
 .site-header .person-search { pointer-events: auto; width: min(300px, calc(100vw - 92px)); margin-top: 10px; }
 .site-header .person-search .combobox-trigger { background: color-mix(in srgb, var(--paper) 92%, transparent); }
+/* Téléphone : titre, sous-titre et recherche centrés (rien d'autre n'occupe le haut de l'écran). */
+@media (max-width: 759px) {
+  .site-header { right: 0; max-width: none; padding-right: max(16px, env(safe-area-inset-right)); text-align: center; }
+  .site-header .site-title { justify-content: center; }
+  .site-header .person-search { margin-left: auto; margin-right: auto; width: min(320px, 100%); }
+}
 
 /* Fenêtre légende + personnes */
 .captions .caption-row { align-items: flex-start; }
