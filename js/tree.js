@@ -40,14 +40,46 @@ export function layoutTree(family) {
 
   // Place une personne, ses conjoints (toujours à côté d'elle) et toute leur descendance
   // à partir de l'abscisse `left`. Renvoie le bord droit du bloc.
-  function place(pid, left, depth, out) {
+  // Ordre des conjoints sur la ligne, pour que chaque couple soit côte à côte et que les branches
+  // ne se croisent pas :
+  //  - un conjoint qui a sa propre famille dans l'arbre est placé du côté de cette famille
+  //    (à gauche si elle est déjà dessinée, à droite si elle le sera ensuite) ;
+  //  - les autres vont de l'autre côté ; à défaut, ex-conjoints à gauche, conjoint actuel à droite.
+  // Ex. : Nathalie (actuelle) — Pascal — Séverine (ex, dont les parents sont à droite).
+  const familySide = id => {
+    const parents = family.parentsOf(id);
+    if (!parents.length) return 0;
+    return parents.some(p => pos.has(p)) ? -1 : 1;
+  };
+
+  function arrangePartners(pid) {
     placed.add(pid);
     const block = [pid];
-    for (let i = 0; i < block.length; i++) {
-      for (const p of family.partnersOf(block[i])) {
-        if (!placed.has(p)) { placed.add(p); block.push(p); }
+    const side = new Map([[pid, 0]]);   // -1 : à gauche de pid, +1 : à droite
+    const queue = [pid];
+    while (queue.length) {
+      const person = queue.shift();
+      const links = family.partnerLinks(person).filter(l => !placed.has(l.id));
+      // Côté imposé par la famille de chacun ; les autres prennent le côté resté libre.
+      const forced = links.map(l => familySide(l.id)).filter(Boolean);
+      const freeSide = forced.length ? -forced[0] : 0;
+      // Les ex d'abord, puis les conjoints actuels.
+      links.sort((a, b) => Number(b.ended) - Number(a.ended));
+      for (const { id, ended } of links) {
+        placed.add(id);
+        // Plus loin dans la chaîne, on s'éloigne de pid du côté où se trouve déjà la personne.
+        const dir = side.get(person) || familySide(id) || freeSide || (ended ? -1 : 1);
+        side.set(id, dir);
+        const at = block.indexOf(person);
+        block.splice(dir < 0 ? at : at + 1, 0, id);   // juste à côté de son conjoint
+        queue.push(id);
       }
     }
+    return block;
+  }
+
+  function place(pid, left, depth, out) {
+    const block = arrangePartners(pid);
 
     // Enfants du bloc, du plus âgé au plus jeune ; ceux qui épousent quelqu'un d'une autre
     // famille de l'arbre passent en dernier, pour que les deux familles se retrouvent côte à côte.
@@ -366,14 +398,20 @@ export function createTree(svg, family, { onSelect } = {}) {
   const anchors = [];          // bouts de brindilles où accrocher les feuilles
   let leafBudget = 0;          // nombre de feuilles de l'ancien dessin, augmenté ensuite de 20 %
 
-  const trunkBases = new Set();
+  // Un seul tronc par famille de la première génération : sous le couple qui a des enfants
+  // (s'il y en a plusieurs, conjoints et ex-conjoints, on prend celui qui en a le plus).
+  const withTrunk = new Set();
   for (const id of pos.keys()) {
-    if (pos.get(id).depth !== 0) continue;
-    const u = family.unionsOf(id)[0];
+    if (pos.get(id).depth !== 0 || withTrunk.has(id)) continue;
+    const chain = [id];
+    for (let i = 0; i < chain.length; i++) {
+      for (const p of family.partnersOf(chain[i])) if (!chain.includes(p) && pos.get(p)?.depth === 0) chain.push(p);
+    }
+    chain.forEach(p => withTrunk.add(p));
+    const chainUnions = [...new Set(chain.flatMap(p => family.unionsOf(p)))];
+    chainUnions.sort((a, b) => b.children.length - a.children.length);
+    const u = chainUnions[0];
     const base = u ? unionPoint(u) : pos.get(id);
-    const key = Math.round(base.x);
-    if (trunkBases.has(key)) continue;
-    trunkBases.add(key);
     const w = 26;
     branches.append(el('path', {
       class: 'trunk',

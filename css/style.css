@@ -80,6 +80,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Un élément marqué « hidden » reste caché, quelles que soient les autres règles d'affichage. */
+[hidden] { display: none !important; }
+
 html, body { height: 100%; margin: 0; }
 
 body {
@@ -173,7 +176,7 @@ body {
 .branch.couple { stroke: var(--bark-dark); }
 
 /* Ex-conjoints : branche en pointillés, plus discrète */
-.branch.couple.former { stroke-dasharray: 2 9; stroke-width: 4; opacity: 0.75; }
+.branch.couple.former { stroke-dasharray: 1 8; stroke-width: 5; stroke-linecap: round; opacity: 0.9; }
 
 /* Colombe sous la vignette d'une personne décédée */
 .dove-body, .dove-wing, .dove-tail { fill: #FBF7EF; stroke: #8A7E70; stroke-width: 0.9; stroke-linejoin: round; }
@@ -451,7 +454,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline
 /* Formulaire : case « Personne décédée », état du couple */
 .check-line { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--moss-dark); cursor: pointer; }
 .check-line input { width: 18px; height: 18px; accent-color: var(--moss); }
-.death-fields[hidden] { display: none; }
+/* Plus précis que « .person-form .row » (grille), sinon les champs restent visibles. */
+.person-form .death-fields[hidden] { display: none; }
 .field.union-status { border: 0; padding: 0; }
 .field.union-status label { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.92rem; cursor: pointer; }
 .field.union-status input { width: auto; margin: 0; accent-color: var(--moss); }

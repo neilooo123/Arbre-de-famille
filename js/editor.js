@@ -437,7 +437,8 @@ export function openPersonForm({ family, relativeId, relation, editId, onSubmit 
         submit.textContent = submitLabel;
       }
     });
-    queueMicrotask(() => form.elements.firstName.focus());
+    // Curseur dans le prénom, sans faire défiler le formulaire (les onglets restent visibles en haut).
+    queueMicrotask(() => form.elements.firstName.focus({ preventScroll: true }));
   });
 }
 
