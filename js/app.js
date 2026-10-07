@@ -581,10 +581,29 @@ function setupToolbox() {
   });
 }
 
+// Onglet sous le titre : le titre remonte hors de l'écran, ou redescend (choix retenu sur l'appareil).
+function setupHeaderToggle() {
+  const header = document.querySelector('.site-header');
+  const tab = document.getElementById('header-tab');
+  const setCollapsed = collapsed => {
+    header.classList.toggle('collapsed', collapsed);
+    tab.setAttribute('aria-expanded', String(!collapsed));
+    const label = collapsed ? 'Afficher le titre' : 'Masquer le titre';
+    tab.setAttribute('aria-label', label);
+    tab.dataset.tip = label;
+    try { localStorage.setItem('header-collapsed', collapsed ? '1' : ''); } catch {}
+  };
+  tab.addEventListener('click', () => setCollapsed(!header.classList.contains('collapsed')));
+  let saved = false;
+  try { saved = localStorage.getItem('header-collapsed') === '1'; } catch {}
+  if (saved) setCollapsed(true);
+}
+
 async function start() {
   setupIntro();
   setupAdmin();
   setupToolbox();
+  setupHeaderToggle();
 
   // Retour d'un lien reçu par e-mail (confirmation du compte, ou mot de passe oublié) ?
   const params = new URL(location.href).searchParams;
