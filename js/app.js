@@ -2,7 +2,7 @@
 // et navigation par lien (#/personne/<id>), pour qu'on puisse partager la fiche de quelqu'un.
 
 import {
-  loadFamily, addPerson, updatePerson, deletePerson, familyJson, fullName, supabase, AccessError,
+  loadFamily, addPerson, linkPerson, updatePerson, deletePerson, setUnionEnded, familyJson, fullName, supabase, AccessError,
   fetchGallery, fetchFullPhoto, addGalleryPhoto, deleteGalleryPhoto, updatePhotoCaption, escapeHtml,
 } from './data.js';
 import { createTree } from './tree.js';
@@ -329,7 +329,7 @@ function setupControls() {
 
   // Boutons de la fiche : « Modifier la fiche », « Supprimer », « + Conjoint », « + Enfant »…
   panelBody.addEventListener('click', async e => {
-    const btn = e.target.closest('[data-add], [data-action], [data-zoom-portrait], [data-photo-index], [data-delete-photo], [data-caption-photo], [data-add-photos]');
+    const btn = e.target.closest('[data-add], [data-action], [data-zoom-portrait], [data-photo-index], [data-delete-photo], [data-caption-photo], [data-add-photos], [data-union-partner]');
     if (!btn || !currentId) return;
     const id = currentId;
     const person = family.get(id);
@@ -352,6 +352,17 @@ function setupControls() {
       const input = panelBody.querySelector('[data-photo-input]');
       input.onchange = () => uploadPhotos(id, input.files);
       input.click();
+      return;
+    }
+    if (btn.dataset.unionPartner) {
+      btn.disabled = true;
+      try {
+        await setUnionEnded(id, btn.dataset.unionPartner, btn.dataset.unionEnded === '1');
+        await reload(id);
+      } catch (err) {
+        btn.disabled = false;
+        alert(`Le changement n'a pas pu être enregistré : ${err.message}`);
+      }
       return;
     }
     if (btn.dataset.captionPhoto) {
@@ -384,7 +395,9 @@ function setupControls() {
 
     if (btn.dataset.add) {
       const newId = await openPersonForm({
-        family, relativeId: id, relation: btn.dataset.add, onSubmit: addPerson,
+        family, relativeId: id, relation: btn.dataset.add,
+        // Nouvelle personne, ou personne déjà dans l'arbre à relier.
+        onSubmit: request => (request.mode === 'link' ? linkPerson(request) : addPerson(request)),
       });
       if (newId) await reload(newId);
     } else if (btn.dataset.action === 'edit') {

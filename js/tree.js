@@ -28,13 +28,26 @@ export function layoutTree(family) {
   // Un conjoint pas encore placé dont la famille est aussi dans l'arbre : il « relie » deux familles.
   const marriesOut = id => family.partnersOf(id).some(p => !placed.has(p) && hasParents(p));
 
+  // Une personne et tous ses conjoints, actuels ou ex, de proche en proche : par exemple Michel,
+  // sa conjointe Christine et l'ex-conjoint de Christine. Ils sont placés côte à côte, sur la même génération.
+  const partnerChain = id => {
+    const chain = [id];
+    for (let i = 0; i < chain.length; i++) {
+      for (const p of family.partnersOf(chain[i])) if (!chain.includes(p)) chain.push(p);
+    }
+    return chain;
+  };
+
   // Place une personne, ses conjoints (toujours à côté d'elle) et toute leur descendance
   // à partir de l'abscisse `left`. Renvoie le bord droit du bloc.
   function place(pid, left, depth, out) {
     placed.add(pid);
-    const partners = family.partnersOf(pid).filter(p => !placed.has(p));
-    partners.forEach(p => placed.add(p));
-    const block = [pid, ...partners];
+    const block = [pid];
+    for (let i = 0; i < block.length; i++) {
+      for (const p of family.partnersOf(block[i])) {
+        if (!placed.has(p)) { placed.add(p); block.push(p); }
+      }
+    }
 
     // Enfants du bloc, du plus âgé au plus jeune ; ceux qui épousent quelqu'un d'une autre
     // famille de l'arbre passent en dernier, pour que les deux familles se retrouvent côte à côte.
@@ -66,13 +79,13 @@ export function layoutTree(family) {
     return left + width;
   }
 
-  // Racines : personnes sans parents connus (sauf si elles seront placées à côté
-  // d'un conjoint qui, lui, a des parents dans l'arbre).
+  // Racines : personnes sans parents connus (sauf si elles seront placées à côté d'un conjoint,
+  // ou du conjoint d'un conjoint, qui a des parents dans l'arbre).
   let x = 0;
   const ids = [...family.persons.keys()];
   for (const id of ids) {
     if (placed.has(id) || hasParents(id)) continue;
-    if (family.partnersOf(id).some(hasParents)) continue;
+    if (partnerChain(id).some(hasParents)) continue;
     if (x > 0) x += TREE_GAP;
     x = place(id, x, 0, []);
   }
@@ -272,7 +285,29 @@ function windSway(target) {
 // Classe CSS selon le sexe : la couleur du médaillon en dépend (voir --female / --male).
 const sexClass = p => (p.sex === 'F' ? ' female' : p.sex === 'M' ? ' male' : '');
 
+// Petite colombe en vol, une fleur dans le bec, sous la vignette d'une personne décédée.
+function dove(y) {
+  const g = el('g', { class: 'dove', transform: `translate(-2 ${y}) scale(1.5)` });
+  g.innerHTML = `
+    <title>Décédé(e)</title>
+    <path class="dove-tail" d="M-10 2 L-15 -2 L-14.5 4 Z"/>
+    <path class="dove-body" d="M-11 2 C-6 4 -1 2 2 -1 C5 -4 7 -6 10 -6 C12 -6 13 -5 13.5 -4 L16.5 -3.6 L13.5 -2.4 C12.5 2 8.5 5.5 2 6.2 C-4 6.8 -9 5.5 -11 2 Z"/>
+    <path class="dove-wing" d="M-2 0 C-5 -5 -3 -11 4 -13 C2.5 -8.5 4.5 -4.5 1.5 0 Z"/>
+    <circle class="dove-eye" cx="10.5" cy="-4" r="0.7"/>
+    <path class="dove-stem" d="M16 -3.4 C17.5 -1.6 18.2 0.5 18 2.6"/>
+    <path class="dove-leaf" d="M17.4 0 C18.8 -0.8 20 -0.4 20.4 0.4 C19.2 0.9 18.2 0.7 17.4 0 Z"/>
+    <g class="dove-flower" transform="translate(18.1 4)">
+      <circle cx="0" cy="-1.5" r="1.25"/><circle cx="1.45" cy="-0.45" r="1.25"/><circle cx="0.9" cy="1.25" r="1.25"/>
+      <circle cx="-0.9" cy="1.25" r="1.25"/><circle cx="-1.45" cy="-0.45" r="1.25"/>
+    </g>
+    <circle class="dove-flower-heart" cx="18.1" cy="4" r="0.85"/>`;
+  return g;
+}
+
 export function createTree(svg, family, { onSelect } = {}) {
+  // Hauteur, sous le centre d'une vignette, où vient s'accrocher la branche qui monte vers elle
+  // (plus bas quand la colombe est affichée sous le nom).
+  const attachBelow = id => R + (family.get(id)?.deceased ? 98 : 66);
   const pos = layoutTree(family);
   const rand = seeded(7);
   svg.replaceChildren();
@@ -367,7 +402,8 @@ export function createTree(svg, family, { onSelect } = {}) {
     if (pts.length === 2) {
       const [a, b] = pts;
       branches.append(el('path', {
-        class: 'branch couple', 'stroke-width': Math.max(3, width - 2),
+        // Ex-conjoints : branche en pointillés.
+        class: `branch couple${u.ended ? ' former' : ''}`, 'stroke-width': Math.max(3, width - 2),
         d: a.y === b.y
           ? `M${a.x},${a.y} Q${(a.x + b.x) / 2},${a.y + 18} ${b.x},${b.y}`
           : branchPath(a.x, a.y, b.x, b.y),
@@ -380,12 +416,12 @@ export function createTree(svg, family, { onSelect } = {}) {
       if (!cp) continue;
       branches.append(el('path', {
         class: 'branch', 'stroke-width': width,
-        d: branchPath(up.x, up.y + 10, cp.x, cp.y + R + 66),
+        d: branchPath(up.x, up.y + 10, cp.x, cp.y + attachBelow(c)),
       }));
       leafBudget += 2;
 
       // Deux brindilles par branche, de part et d'autre, orientées vers le haut et l'extérieur.
-      const bx1 = up.x, by1 = up.y + 10, bx2 = cp.x, by2 = cp.y + R + 66;
+      const bx1 = up.x, by1 = up.y + 10, bx2 = cp.x, by2 = cp.y + attachBelow(c);
       for (const [t, side] of [[0.3 + rand() * 0.1, 1], [0.62 + rand() * 0.1, -1]]) {
         const p = alongBranch(bx1, by1, bx2, by2, t);
         anchors.push(...twig(twigs, p.x, p.y, p.angle + side * (38 + rand() * 22), 30 + rand() * 26, rand));
@@ -442,6 +478,7 @@ export function createTree(svg, family, { onSelect } = {}) {
     const years = el('text', { class: 'years', y: R + 60, 'text-anchor': 'middle' });
     years.textContent = lifeSpan(person);
     sway.append(name, last, years);
+    if (person.deceased) sway.append(dove(R + 82));
 
     g.append(sway);
     const wind = windSway(sway);

@@ -172,6 +172,19 @@ body {
 }
 .branch.couple { stroke: var(--bark-dark); }
 
+/* Ex-conjoints : branche en pointillés, plus discrète */
+.branch.couple.former { stroke-dasharray: 2 9; stroke-width: 4; opacity: 0.75; }
+
+/* Colombe sous la vignette d'une personne décédée */
+.dove-body, .dove-wing, .dove-tail { fill: #FBF7EF; stroke: #8A7E70; stroke-width: 0.9; stroke-linejoin: round; }
+.dove-wing { fill: #F1EADB; }
+.dove-eye { fill: #4E3A2B; }
+.dove-stem { fill: none; stroke: #5B7553; stroke-width: 1; stroke-linecap: round; }
+.dove-flower { fill: #C2603A; }
+.dove-leaf { fill: #6F8F5F; }
+.dove-flower-heart { fill: #E8C15A; }
+#tree.calm.far .node .dove { display: none; }
+
 .twig {
   fill: none;
   stroke: var(--twig);
@@ -434,6 +447,29 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline
 }
 
 .unknown { color: var(--ink-soft); font-style: italic; }
+
+/* Formulaire : case « Personne décédée », état du couple */
+.check-line { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--moss-dark); cursor: pointer; }
+.check-line input { width: 18px; height: 18px; accent-color: var(--moss); }
+.death-fields[hidden] { display: none; }
+.field.union-status { border: 0; padding: 0; }
+.field.union-status label { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.92rem; cursor: pointer; }
+.field.union-status input { width: auto; margin: 0; accent-color: var(--moss); }
+
+/* Fiche : conjoints et ex-conjoints */
+.kin li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.kin.former .chip { opacity: 0.8; border-style: dashed; }
+.union-toggle {
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 0.78rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--bark) 30%, transparent);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.union-toggle:hover { color: var(--ink); background: var(--cream); }
 
 /* Portrait cliquable : il s'agrandit au centre de l'écran */
 button.portrait { border: 0; font: inherit; cursor: zoom-in; transition: transform 0.15s; }
@@ -756,6 +792,57 @@ button.portrait:hover { transform: scale(1.04); }
 .field.sex legend { padding: 0; margin-bottom: 4px; }
 .field.sex label { display: inline-flex; align-items: center; gap: 5px; margin: 6px 12px 0 0; font-size: 0.92rem; cursor: pointer; }
 .field.sex input { width: auto; margin: 0; accent-color: var(--moss); }
+/* Onglets « Nouvelle personne » / « Personne déjà dans l'arbre » */
+.mode-switch {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bark) 10%, transparent);
+}
+.mode-switch button {
+  flex: 1;
+  padding: 8px 12px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.mode-switch button[aria-selected="true"] { background: var(--paper); color: var(--ink); box-shadow: 0 1px 4px rgba(50, 35, 20, 0.15); }
+.new-person { display: grid; gap: 12px; }
+.new-person[hidden], .existing-picker[hidden] { display: none; }
+.existing-picker { display: grid; gap: 10px; }
+.picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--bark) 25%, transparent);
+  background: var(--cream);
+}
+.picker-list li[hidden] { display: none; }
+.picker-list label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.picker-list label:hover { background: color-mix(in srgb, var(--leaf-2) 18%, transparent); }
+.picker-list label:has(input:checked) { background: color-mix(in srgb, var(--moss) 22%, transparent); }
+.picker-list label.disabled { cursor: not-allowed; opacity: 0.5; }
+.picker-list input { accent-color: var(--moss); }
+.picker-name { font-weight: 600; }
+.picker-list small { color: var(--ink-soft); }
+.picker-empty { margin: 0; color: var(--ink-soft); font-style: italic; }
+
 /* Choix de la photo */
 .photo-picker {
   display: flex;

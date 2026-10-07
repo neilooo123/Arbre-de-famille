@@ -63,6 +63,18 @@ export async function addPerson(request) {
   return res.id;
 }
 
+// Marque un couple comme séparé (ex-conjoints : ended = true) ou de nouveau actuel.
+export async function setUnionEnded(personA, personB, ended) {
+  await rpc('set_union_ended', { person_a: personA, person_b: personB, ended });
+}
+
+// Relie une personne déjà présente dans l'arbre (conjoint, enfant, parent, frère ou sœur).
+// request = { relation, relativeId, targetId, unionDate }. Renvoie l'identifiant de la personne reliée.
+export async function linkPerson(request) {
+  const res = await rpc('link_person', { payload: request });
+  return res.id;
+}
+
 // Modifie les informations d'une personne (même format que request.person d'addPerson).
 export async function updatePerson(id, person) {
   await rpc('update_person', { target_id: id, changes: person });
@@ -125,7 +137,8 @@ export function indexFamily(raw) {
   const persons = new Map();
   for (const p of raw.persons ?? []) {
     if (persons.has(p.id)) console.warn(`Identifiant en double : ${p.id}`);
-    persons.set(p.id, { videos: [], ...p });
+    // « deceased » : coché dans le formulaire, ou déduit d'une date/d'un lieu de décès (anciens fichiers).
+    persons.set(p.id, { videos: [], ...p, deceased: p.deceased ?? !!(p.death?.date || p.death?.place) });
   }
 
   const unions = new Map();
@@ -168,6 +181,8 @@ export function indexFamily(raw) {
     parentUnionOf,
     parentsOf: id => parentUnionOf(id)?.partners ?? [],
     partnersOf: id => unionsOf(id).flatMap(u => u.partners.filter(p => p !== id)),
+    // Conjoints avec l'état du couple : [{ id, ended }] (ended = ex-conjoints).
+    partnerLinks: id => unionsOf(id).flatMap(u => u.partners.filter(p => p !== id).map(p => ({ id: p, ended: !!u.ended }))),
     childrenOf: id => unionsOf(id).flatMap(u => u.children),
     siblingsOf: id => (parentUnionOf(id)?.children ?? []).filter(c => c !== id),
   };
@@ -190,6 +205,7 @@ export function lifeSpan(p) {
   const b = year(p.birth), d = year(p.death);
   if (b && d) return `${b} – ${d}`;
   if (d) return `† ${d}`;
+  if (b && p.deceased) return `${b} – ?`;   // décédé, date inconnue
   if (b) return `${b}`;
   return '';
 }

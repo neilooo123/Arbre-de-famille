@@ -64,10 +64,34 @@ function chips(title, ids, family) {
   return `<section class="kin"><h3>${title}</h3><ul>${items}</ul></section>`;
 }
 
-function partnerLabel(ids, family) {
-  if (ids.length > 1) return 'Conjoints';
+function partnerLabel(ids, family, prefix = '') {
   const sex = family.get(ids[0])?.sex;
-  return sex === 'F' ? 'Conjointe' : sex === 'M' ? 'Conjoint' : 'Conjoint·e';
+  const word = ids.length > 1 ? 'conjoints' : sex === 'F' ? 'conjointe' : sex === 'M' ? 'conjoint' : 'conjoint·e';
+  // « Conjoint », ou « Ex-conjoint » (majuscule seulement au début)
+  const label = prefix + word;
+  return label[0].toUpperCase() + label.slice(1);
+}
+
+// Conjoints actuels et ex-conjoints, en deux groupes. En mode édition, un bouton par conjoint
+// permet de marquer le couple comme séparé, ou de nouveau actuel.
+function partnerSections(family, id, editing) {
+  const links = family.partnerLinks(id);
+  const group = (ended, title) => {
+    const ids = links.filter(l => l.ended === ended).map(l => l.id);
+    if (!ids.length) return '';
+    const items = ids.map(pid => {
+      const p = family.get(pid);
+      const avatar = p.photo
+        ? `<img src="${escapeHtml(p.photo)}" alt="">`
+        : `<span aria-hidden="true">${escapeHtml(initials(p))}</span>`;
+      const toggle = editing ? `
+        <button type="button" class="union-toggle" data-union-partner="${escapeHtml(pid)}" data-union-ended="${ended ? '0' : '1'}">
+          ${ended ? 'Marquer comme actuel' : 'Marquer comme ex'}</button>` : '';
+      return `<li><a class="chip" href="#/personne/${encodeURIComponent(pid)}">${avatar}${escapeHtml(fullName(p))}</a>${toggle}</li>`;
+    }).join('');
+    return `<section class="kin${ended ? ' former' : ''}"><h3>${partnerLabel(ids, family, title)}</h3><ul>${items}</ul></section>`;
+  };
+  return group(false, '') + group(true, 'Ex-');
 }
 
 // Boutons d'ajout (mode édition). Certains liens sont impossibles : on explique pourquoi.
@@ -148,7 +172,7 @@ export function renderProfile(container, family, id, { editing = false } = {}) {
       </div>
     </header>
     <dl class="facts">
-      ${eventLine(born, p.birth, { always: true })}${eventLine(died, p.death)}
+      ${eventLine(born, p.birth, { always: true })}${eventLine(died, p.death, { always: p.deceased })}
       ${p.sex ? '' : `<div><dt>Sexe</dt><dd>${unknown('inconnu')}</dd></div>`}
     </dl>
     ${editing ? addSection(family, id) : ''}
@@ -156,7 +180,7 @@ export function renderProfile(container, family, id, { editing = false } = {}) {
     ${p.galleryCount || editing ? gallerySection(p, editing) : ''}
     <section class="bio">${bio || `<p>${unknown('Histoire inconnue.')}</p>`}</section>
     ${chips('Parents', family.parentsOf(id), family)}
-    ${chips(partnerLabel(family.partnersOf(id), family), family.partnersOf(id), family)}
+    ${partnerSections(family, id, editing)}
     ${chips('Frères et sœurs', family.siblingsOf(id), family)}
     ${chips('Enfants', family.childrenOf(id), family)}
   `;

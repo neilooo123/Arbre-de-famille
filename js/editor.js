@@ -3,7 +3,7 @@
 //  - modification des informations d'une personne ;
 //  - confirmation avant suppression.
 
-import { fullName, escapeHtml } from './data.js';
+import { fullName, lifeSpan, escapeHtml } from './data.js';
 import { youtubeId } from './profile.js';
 
 const TITLES = {
@@ -40,6 +40,69 @@ function displayDate(iso) {
   return d ? `${d}/${m}/${y}` : m ? `${m}/${y}` : (y ?? '');
 }
 
+// ---------- Relier une personne déjà présente dans l'arbre ----------
+
+const ancestorsOf = (family, id, seen = new Set()) => {
+  for (const p of family.parentsOf(id)) {
+    if (!seen.has(p)) { seen.add(p); ancestorsOf(family, p, seen); }
+  }
+  return seen;
+};
+const descendantsOf = (family, id, seen = new Set()) => {
+  for (const c of family.childrenOf(id)) {
+    if (!seen.has(c)) { seen.add(c); descendantsOf(family, c, seen); }
+  }
+  return seen;
+};
+const normalize = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+// Toutes les personnes de l'arbre, avec la raison pour laquelle on ne peut pas les relier (ou '').
+// Mêmes règles que la base de données (link_person), pour prévenir avant d'envoyer.
+function linkCandidates(family, relativeId, relation) {
+  const ancestors = ancestorsOf(family, relativeId);
+  const descendants = descendantsOf(family, relativeId);
+  const sameLine = id => ancestors.has(id) || descendants.has(id);
+  const relativeParents = new Set(family.parentsOf(relativeId));
+
+  const reasonFor = id => {
+    if (relation !== 'partner' && family.partnersOf(relativeId).includes(id)) return 'est son conjoint';
+    switch (relation) {
+      case 'partner':
+        if (family.partnersOf(relativeId).includes(id)) return 'déjà conjoint';
+        if (sameLine(id)) return 'même lignée';
+        return '';
+      case 'child':
+        if (family.childrenOf(relativeId).includes(id)) return 'déjà son enfant';
+        if (ancestors.has(id)) return 'est un de ses ancêtres';
+        if (family.parentsOf(id).length >= 2) return 'a déjà deux parents';
+        return '';
+      case 'parent':
+        if (relativeParents.has(id)) return 'déjà son parent';
+        if (descendants.has(id)) return 'est un de ses descendants';
+        return '';
+      case 'sibling':
+        if (family.siblingsOf(relativeId).includes(id)) return 'déjà frère ou sœur';
+        if (sameLine(id)) return 'même lignée';
+        if (family.parentsOf(id).some(p => !relativeParents.has(p))) return "a d'autres parents";
+        return '';
+      default:
+        return '';
+    }
+  };
+
+  return [...family.persons.values()]
+    .filter(p => p.id !== relativeId)
+    .map(p => ({ id: p.id, name: fullName(p), years: lifeSpan(p), reason: reasonFor(p.id) }))
+    .sort((a, b) => (a.reason ? 1 : 0) - (b.reason ? 1 : 0) || a.name.localeCompare(b.name, 'fr'));
+}
+
+const LINK_HINTS = {
+  partner: '',
+  child: 'Ses parents actuels sont conservés : par exemple, la fille de la conjointe devient l’enfant du couple.',
+  parent: 'Si la personne a déjà un parent, le nouveau parent forme un couple avec lui.',
+  sibling: 'La personne choisie aura les mêmes parents.',
+};
+
 let dialog;
 let finish = null;   // termine le dialogue en cours : finish(résultat) ou finish(null) pour annuler
 
@@ -61,8 +124,9 @@ function ensureDialog() {
     warning.querySelector('.complete-form').click();
   });
   dialog.addEventListener('cancel', e => { e.preventDefault(); finish?.(null); });
-  // Filet de sécurité si le dialogue est fermé autrement.
-  dialog.addEventListener('close', () => finish?.(null));
+  // Filet de sécurité si le dialogue est fermé autrement. L'événement arrive avec un temps de retard :
+  // si un nouveau formulaire a été ouvert entre-temps, il ne faut pas le fermer.
+  dialog.addEventListener('close', () => { if (!dialog.open) finish?.(null); });
   return dialog;
 }
 
@@ -98,6 +162,7 @@ export function openPersonForm({ family, relativeId, relation, editId, onSubmit 
   const start = current ? {
     firstName: current.firstName, lastName: current.lastName, birthName: current.birthName, sex: current.sex ?? '',
     birthDate: displayDate(current.birth?.date), birthPlace: current.birth?.place,
+    deceased: current.deceased || !!current.death,
     deathDate: displayDate(current.death?.date), deathPlace: current.death?.place,
     bio: current.bio, photo: current.photo, video: youtubeIndex >= 0 ? current.videos[youtubeIndex].id : '',
   } : {
@@ -118,12 +183,21 @@ export function openPersonForm({ family, relativeId, relation, editId, onSubmit 
     </label>` : '';
 
   const unionField = relation === 'partner' ? `
-    <label class="field">
-      <span>Date de l'union <small>(mariage, PACS… facultatif)</small></span>
-      <input name="unionDate" inputmode="numeric" placeholder="1956 ou 14/07/1956">
-    </label>` : '';
+    <div class="row">
+      <fieldset class="field union-status">
+        <legend>Ce couple</legend>
+        <label><input type="radio" name="unionEnded" value="" checked> Conjoint actuel</label>
+        <label><input type="radio" name="unionEnded" value="1"> Ex-conjoint <small>(séparés)</small></label>
+      </fieldset>
+      <label class="field">
+        <span>Date de l'union <small>(mariage, PACS… facultatif)</small></span>
+        <input name="unionDate" inputmode="numeric" placeholder="1956 ou 14/07/1956">
+      </label>
+    </div>` : '';
 
   const submitLabel = editing ? 'Enregistrer' : "Ajouter à l'arbre";
+  const candidates = editing ? [] : linkCandidates(family, relativeId, relation);
+  let mode = 'new';   // 'new' : nouvelle personne ; 'existing' : personne déjà dans l'arbre
 
   const html = `
     <form method="dialog" novalidate>
@@ -133,6 +207,31 @@ export function openPersonForm({ family, relativeId, relation, editId, onSubmit 
       </header>
 
       <div class="form-body">
+        ${editing ? '' : `
+        <div class="mode-switch" role="tablist" aria-label="Qui ajouter ?">
+          <button type="button" role="tab" aria-selected="true" data-mode="new">Nouvelle personne</button>
+          <button type="button" role="tab" aria-selected="false" data-mode="existing">Personne déjà dans l'arbre</button>
+        </div>`}
+
+        ${unionField}
+
+        ${editing ? '' : `
+        <div class="existing-picker" hidden>
+          <label class="field"><span>Rechercher une personne</span>
+            <input type="search" class="picker-search" placeholder="Prénom ou nom…" autocomplete="off"></label>
+          <ul class="picker-list" role="radiogroup" aria-label="Personnes de l'arbre">
+            ${candidates.map(c => `
+              <li><label class="${c.reason ? 'disabled' : ''}" data-search="${escapeHtml(normalize(c.name))}">
+                <input type="radio" name="targetId" value="${escapeHtml(c.id)}" ${c.reason ? 'disabled' : ''}>
+                <span class="picker-name">${escapeHtml(c.name)}</span>
+                <small>${[c.years, c.reason].filter(Boolean).map(escapeHtml).join(' · ')}</small>
+              </label></li>`).join('')}
+          </ul>
+          <p class="picker-empty" hidden>Personne ne correspond à cette recherche.</p>
+          ${LINK_HINTS[relation] ? `<p class="admin-hint">${escapeHtml(LINK_HINTS[relation])}</p>` : ''}
+        </div>`}
+
+        <div class="new-person">
         <div class="row">
           <label class="field"><span>Prénom <b aria-hidden="true">*</b></span>
             <input name="firstName" value="${val('firstName')}" required autocomplete="off"></label>
@@ -148,7 +247,7 @@ export function openPersonForm({ family, relativeId, relation, editId, onSubmit 
           </fieldset>
         </div>
 
-        ${otherParentField}${unionField}
+        ${otherParentField}
 
         <div class="row">
           <label class="field"><span>Naissance</span>
@@ -156,8 +255,11 @@ export function openPersonForm({ family, relativeId, relation, editId, onSubmit 
           <label class="field"><span>Lieu de naissance</span>
             <input name="birthPlace" value="${val('birthPlace')}"></label>
         </div>
-        <div class="row">
-          <label class="field"><span>Décès <small>(laisser vide si vivant)</small></span>
+        <label class="check-line">
+          <input type="checkbox" name="deceased" ${start.deceased ? 'checked' : ''}> Personne décédée
+        </label>
+        <div class="row death-fields" ${start.deceased ? '' : 'hidden'}>
+          <label class="field"><span>Date du décès</span>
             <input name="deathDate" value="${val('deathDate')}" inputmode="numeric" placeholder="2019 ou 03/11/2019"></label>
           <label class="field"><span>Lieu du décès</span>
             <input name="deathPlace" value="${val('deathPlace')}"></label>
@@ -192,6 +294,7 @@ export function openPersonForm({ family, relativeId, relation, editId, onSubmit 
 
         <label class="field"><span>Interview <small>(lien YouTube)</small></span>
           <input name="video" type="url" value="${val('video')}" placeholder="https://youtu.be/…"></label>
+        </div>
       </div>
 
       <p class="form-error" role="alert" hidden></p>
@@ -228,6 +331,37 @@ export function openPersonForm({ family, relativeId, relation, editId, onSubmit 
     warning = d.querySelector('.form-warning');
     setupPhotoPicker(form, start.photo, showError);
 
+    // Case « Personne décédée » : fait apparaître la date et le lieu du décès.
+    const deceasedBox = form.elements.deceased;
+    deceasedBox?.addEventListener('change', () => {
+      form.querySelector('.death-fields').hidden = !deceasedBox.checked;
+      if (deceasedBox.checked) form.elements.deathDate.focus();
+    });
+
+    // Onglets « Nouvelle personne » / « Personne déjà dans l'arbre »
+    const picker = form.querySelector('.existing-picker');
+    const newPerson = form.querySelector('.new-person');
+    form.querySelectorAll('[data-mode]').forEach(tab => tab.addEventListener('click', () => {
+      mode = tab.dataset.mode;
+      form.querySelectorAll('[data-mode]').forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+      picker.hidden = mode !== 'existing';
+      newPerson.hidden = mode === 'existing';
+      submit.textContent = mode === 'existing' ? 'Relier' : submitLabel;
+      error.hidden = true;
+      (mode === 'existing' ? form.querySelector('.picker-search') : form.elements.firstName).focus();
+    }));
+    // Recherche dans la liste (sans tenir compte des accents ni des majuscules)
+    form.querySelector('.picker-search')?.addEventListener('input', e => {
+      const q = normalize(e.target.value.trim());
+      let shown = 0;
+      form.querySelectorAll('.picker-list label').forEach(label => {
+        const match = !q || label.dataset.search.includes(q);
+        label.parentElement.hidden = !match;
+        if (match) shown++;
+      });
+      form.querySelector('.picker-empty').hidden = shown > 0;
+    });
+
     const hideWarning = () => { warning.hidden = true; };
     // Clic à côté de l'avertissement : retour au formulaire.
     warning.addEventListener('click', e => { if (e.target === warning) warning.querySelector('.complete-form').click(); });
@@ -249,6 +383,29 @@ export function openPersonForm({ family, relativeId, relation, editId, onSubmit 
       e.preventDefault();
       if (!finish || submit.disabled) return;   // déjà envoyé ou formulaire fermé
       error.hidden = true;
+
+      if (mode === 'existing') {
+        const data = new FormData(form);
+        const targetId = data.get('targetId');
+        if (!targetId) { showError('Choisissez une personne dans la liste.'); return; }
+        let unionDate = null;
+        try {
+          unionDate = relation === 'partner' ? parseDate(String(data.get('unionDate') ?? ''), "Date de l'union") || null : null;
+        } catch (err) { showError(err.message); return; }
+        submit.disabled = true;
+        submit.textContent = 'Enregistrement…';
+        try {
+          const unionEnded = data.get('unionEnded') === '1';
+          finish?.(await onSubmit({ mode: 'link', relation, relativeId, targetId, unionDate, unionEnded }));
+        } catch (err) {
+          showError(err.message);
+        } finally {
+          submit.disabled = false;
+          submit.textContent = 'Relier';
+        }
+        return;
+      }
+
       let request;
       try {
         request = buildRequest(new FormData(form), { relation, relativeId, current, youtubeIndex });
@@ -298,7 +455,12 @@ const CHECKED_FIELDS = [
 
 function missingFields(form) {
   const data = new FormData(form);
-  return CHECKED_FIELDS.filter(({ name }) => !String(data.get(name) ?? '').trim());
+  const fields = [...CHECKED_FIELDS];
+  // Le décès n'est vérifié que si la case « Personne décédée » est cochée.
+  if (data.get('deceased')) {
+    fields.splice(4, 0, { name: 'deathDate', label: 'date du décès' }, { name: 'deathPlace', label: 'lieu du décès' });
+  }
+  return fields.filter(({ name }) => !String(data.get(name) ?? '').trim());
 }
 
 // Légendes des photos de galerie : un champ par photo (ajout de plusieurs photos, ou modification
@@ -522,7 +684,8 @@ function buildRequest(data, { relation, relativeId, current, youtubeIndex }) {
   if (!firstName) throw new Error('Le prénom est obligatoire.');
 
   const birthDate = parseDate(text('birthDate'), 'Naissance');
-  const deathDate = parseDate(text('deathDate'), 'Décès');
+  const deceased = !!data.get('deceased');
+  const deathDate = deceased ? parseDate(text('deathDate'), 'Décès') : '';
   if (birthDate && deathDate && deathDate.slice(0, 4) < birthDate.slice(0, 4)) {
     throw new Error('La date de décès est antérieure à la naissance.');
   }
@@ -547,13 +710,15 @@ function buildRequest(data, { relation, relativeId, current, youtubeIndex }) {
     relativeId,
     otherParentId: data.get('otherParentId') || null,
     unionDate: relation === 'partner' ? parseDate(text('unionDate'), "Date de l'union") || null : null,
+    unionEnded: relation === 'partner' && data.get('unionEnded') === '1',
     person: {
       firstName,
       lastName: text('lastName') || null,
       birthName: text('birthName') || null,
       sex: data.get('sex') || null,
       birth: event(birthDate, text('birthPlace')),
-      death: event(deathDate, text('deathPlace')),
+      deceased,
+      death: deceased ? event(deathDate, text('deathPlace')) : null,
       photo: text('photo') || null,
       bio: text('bio') || null,
       videos,
