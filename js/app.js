@@ -61,7 +61,7 @@ const galleries = new Map();   // personne → vignettes déjà chargées [{ id,
 
 // Affiche la fiche, puis charge sa galerie (à part, pour ne pas ralentir l'ouverture).
 function showProfile(id) {
-  renderProfile(panelBody, family, id, { editing: isEditing() });
+  renderProfile(panelBody, family, id, { editing: isEditing(), canAddPhotos: !!supabase });
   if (panelBody.querySelector('[data-gallery]')) loadGallery(id);
 }
 
@@ -79,22 +79,41 @@ async function loadGallery(id) {
 }
 
 // Vignettes (avec leur légende) et, en mode édition, les boutons ✎ (légende) et ✕ (supprimer).
+// Autres personnes présentes sur une photo (celle qui l'a dans sa galerie + les personnes identifiées),
+// sans la personne dont on regarde la fiche.
+function photoPeople(ph, id) {
+  return [...new Set([ph.owner, ...(ph.tags ?? [])])]
+    .filter(p => p && p !== id && family.get(p))
+    .map(p => ({ id: p, name: fullName(family.get(p)) }));
+}
+
+// Noms en gras, chacun menant à la fiche de la personne.
+const peopleLinks = people => people
+  .map(p => `<a class="person-link" href="#/personne/${encodeURIComponent(p.id)}">${escapeHtml(p.name)}</a>`)
+  .join(', ');
+
 function renderGalleryGrid(grid, id, name) {
   grid.innerHTML = galleries.get(id).map((ph, i) => {
     const label = ph.caption ? 'Modifier la légende' : 'Ajouter une légende';
+    const people = photoPeople(ph, id);
     return `
     <figure class="thumb-wrap">
+      <div class="thumb-box">
       <button type="button" class="thumb" data-photo-index="${i}"
-              aria-label="Agrandir la photo ${i + 1} de ${escapeHtml(name)}${ph.caption ? ` : ${escapeHtml(ph.caption)}` : ''}"
-              ${ph.caption ? `title="${escapeHtml(ph.caption)}"` : ''}>
+              aria-label="Agrandir la photo ${i + 1} de ${escapeHtml(name)}${ph.caption ? ` : ${escapeHtml(ph.caption)}` : ''}">
         <img src="${escapeHtml(ph.thumb)}" alt="" loading="lazy">
       </button>
-      ${ph.caption ? `<figcaption>${escapeHtml(ph.caption)}</figcaption>` : ''}
       ${isEditing() ? `
         <button type="button" class="thumb-tool thumb-caption" data-caption-photo="${ph.id}" aria-label="${label}" title="${label}">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg></button>
         <button type="button" class="thumb-tool thumb-delete" data-delete-photo="${ph.id}" aria-label="Supprimer cette photo" title="Supprimer cette photo">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : ''}
+      </div>
+      <figcaption>
+        ${ph.caption ? `<span class="photo-caption">${escapeHtml(ph.caption)}</span>` : ''}
+        ${people.length ? `<span class="photo-people">Avec ${peopleLinks(people)}</span>` : ''}
+        ${!ph.caption && !people.length ? '<span class="photo-caption unknown">Sans légende</span>' : ''}
+      </figcaption>
     </figure>`;
   }).join('');
 }
@@ -136,7 +155,7 @@ async function uploadPhotos(id, files) {
   for (const [i, photo] of prepared.entries()) {
     if (status) status.textContent = `Ajout de la photo ${i + 1} sur ${prepared.length}…`;
     try {
-      await addGalleryPhoto(id, { ...photo, ...captions[i] });
+      await addGalleryPhoto(id, { ...photo, ...captions[i] }, access);
     } catch (err) {
       failures.push(`${photo.name} : ${err.message}`);
     }
@@ -400,7 +419,7 @@ function setupControls() {
       openLightbox({
         items: (galleries.get(id) ?? []).map(ph => ({
           thumb: ph.thumb, caption: ph.caption, load: () => fetchFullPhoto(ph.id, access),
-          people: [ph.owner, ...(ph.tags ?? [])].filter(p => p && p !== id && family.get(p)).map(p => fullName(family.get(p))),
+          people: photoPeople(ph, id),
         })),
         index: Number(btn.dataset.photoIndex),
         title: fullName(person),

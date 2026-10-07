@@ -105,8 +105,9 @@ export async function fetchFullPhoto(photoId, access = {}) {
 
 // Ajoute une photo (déjà préparée : vignette + grande version), avec sa légende facultative.
 // `tags` : identifiants des personnes identifiées sur la photo (elle apparaîtra aussi dans leur galerie).
-export async function addGalleryPhoto(personId, { thumb, full, caption = '', tags = [] }) {
-  return rpc('add_photo', { target_id: personId, thumb, full_image: full, caption, tags });
+// Toute la famille peut ajouter des photos : le mot de passe de la famille suffit (access.password).
+export async function addGalleryPhoto(personId, { thumb, full, caption = '', tags = [] }, access = {}) {
+  return rpc('add_photo', { target_id: personId, thumb, full_image: full, caption, tags, password: access.password ?? null });
 }
 
 // Modifie la légende et les personnes identifiées d'une photo.

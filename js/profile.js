@@ -123,15 +123,16 @@ function addSection(family, id) {
 }
 
 // Galerie : les vignettes sont chargées à part (voir app.js), on prépare ici leur emplacement.
-function gallerySection(p, editing) {
+// canAdd : ajout de photos possible (toute la famille) ; editing : outils des administrateurs.
+function gallerySection(p, canAdd) {
   const count = p.galleryCount ?? 0;
   const placeholders = Array.from({ length: Math.min(count, 12) }, () => '<span class="thumb placeholder"></span>').join('');
   return `
     <section class="gallery" aria-labelledby="gallery-title" data-gallery>
       <h3 id="gallery-title">Photos${count ? ` <small>(${count})</small>` : ''}</h3>
       <div class="gallery-grid">${placeholders}</div>
-      ${count || !editing ? '' : `<p class="gallery-empty">${unknown('Aucune photo pour le moment.')}</p>`}
-      ${editing ? `
+      ${count ? '' : `<p class="gallery-empty">${unknown('Aucune photo pour le moment.')}</p>`}
+      ${canAdd ? `
         <button type="button" class="add-btn" data-add-photos>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Ajouter des photos
         </button>
@@ -140,7 +141,7 @@ function gallerySection(p, editing) {
     </section>`;
 }
 
-export function renderProfile(container, family, id, { editing = false } = {}) {
+export function renderProfile(container, family, id, { editing = false, canAddPhotos = false } = {}) {
   const p = family.get(id);
   const sexClass = p.sex === 'F' ? ' female' : p.sex === 'M' ? ' male' : '';
   const name = fullName(p);
@@ -177,7 +178,7 @@ export function renderProfile(container, family, id, { editing = false } = {}) {
     </dl>
     ${editing ? addSection(family, id) : ''}
     <section class="videos" aria-label="Interviews">${videos}</section>
-    ${p.galleryCount || editing ? gallerySection(p, editing) : ''}
+    ${p.galleryCount || canAddPhotos ? gallerySection(p, canAddPhotos) : ''}
     <section class="bio">${bio || `<p>${unknown('Histoire inconnue.')}</p>`}</section>
     ${chips('Parents', family.parentsOf(id), family)}
     ${partnerSections(family, id, editing)}

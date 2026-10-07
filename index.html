@@ -13,8 +13,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
-  <script type="module" src="js/app.js"></script>
+  <!-- Version des fichiers : changée à chaque publication, pour que les navigateurs ne gardent pas
+       en mémoire une ancienne version (GitHub Pages les conserve 10 minutes). -->
+  <link rel="stylesheet" href="css/style.css?v=20261007b">
+  <script type="importmap">
+  { "imports": {
+    "./js/admin.js": "./js/admin.js?v=20261007b",
+    "./js/app.js": "./js/app.js?v=20261007b",
+    "./js/auth.js": "./js/auth.js?v=20261007b",
+    "./js/combobox.js": "./js/combobox.js?v=20261007b",
+    "./js/config.js": "./js/config.js?v=20261007b",
+    "./js/data.js": "./js/data.js?v=20261007b",
+    "./js/editor.js": "./js/editor.js?v=20261007b",
+    "./js/lightbox.js": "./js/lightbox.js?v=20261007b",
+    "./js/profile.js": "./js/profile.js?v=20261007b",
+    "./js/tree.js": "./js/tree.js?v=20261007b"
+  } }
+  </script>
+  <script type="module" src="./js/app.js?v=20261007b"></script>
 </head>
 <body class="intro-active">
   <!-- Fond aquarelle sur papier ancien : purement décoratif, dessiné une seule fois -->

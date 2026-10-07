@@ -484,11 +484,26 @@ button.portrait:hover { transform: scale(1.04); }
 .gallery h3 { margin: 0 0 10px; font-family: var(--font-title); font-size: 1.25rem; font-weight: 600; color: var(--bark); }
 .gallery h3 small { font-size: 0.8em; color: var(--ink-soft); font-weight: 400; }
 @media (prefers-color-scheme: dark) { .gallery h3 { color: var(--wood-light); } }
-.gallery-grid {
+/* Galerie : une photo par ligne, la vignette à gauche, sa légende et les personnes à droite. */
+.gallery-grid { display: grid; gap: 10px; }
+.gallery-grid .thumb-wrap { display: flex; align-items: flex-start; gap: 12px; }
+.thumb-box { position: relative; flex: none; width: 96px; }
+.gallery-grid .thumb-wrap figcaption {
+  flex: 1;
+  min-width: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
-  gap: 8px;
+  gap: 4px;
+  margin: 2px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  color: var(--ink);
+  -webkit-line-clamp: unset;
+  overflow: visible;
 }
+.photo-people { color: var(--ink-soft); }
+.person-link { font-weight: 700; color: var(--moss-dark); text-decoration: none; }
+.person-link:hover { text-decoration: underline; }
+.thumb.placeholder { width: 96px; }
 .thumb-wrap { position: relative; margin: 0; min-width: 0; }
 .thumb-wrap figcaption {
   margin-top: 4px;
@@ -570,9 +585,16 @@ button.portrait:hover { transform: scale(1.04); }
 .lightbox-image.loading { filter: blur(6px); }
 .lightbox figcaption { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; color: #EDE6D8; font-size: 0.95rem; }
 .lightbox figcaption { flex-direction: column; align-items: center; text-align: center; gap: 4px; max-width: 760px; }
+.lightbox .person-link { color: #fff; }
+/* Écran large : la légende à droite de la photo. */
+@media (min-width: 900px) {
+  .lightbox-figure { flex-direction: row; padding: 56px 80px 24px; gap: 28px; }
+  .lightbox-image { max-width: calc(100% - 340px); max-height: calc(100vh - 100px); }
+  .lightbox figcaption { width: 300px; flex: none; align-items: flex-start; text-align: left; gap: 10px; }
+}
 .lightbox-caption { font-size: 1.1rem; line-height: 1.4; }
 .lightbox-caption[hidden] { display: none; }
-.lightbox-people { font-size: 0.92rem; opacity: 0.85; font-style: italic; }
+.lightbox-people { font-size: 0.95rem; opacity: 0.9; }
 .lightbox-title { font-family: var(--font-title); font-size: 1.05rem; opacity: 0.8; }
 .lightbox-counter { opacity: 0.75; }
 .lightbox-counter[hidden] { display: none; }

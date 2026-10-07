@@ -32,7 +32,10 @@ export function openLightbox({ items, index = 0, title = '' }) {
     counter.textContent = `${current + 1} / ${items.length}`;
     captionText.textContent = item.caption ?? '';
     captionText.hidden = !item.caption;
-    people.textContent = item.people?.length ? `Avec : ${item.people.join(', ')}` : '';
+    // Personnes : [{ id, name }] → liens vers leur fiche (le clic referme la photo).
+    people.innerHTML = item.people?.length
+      ? 'Avec ' + item.people.map(p => `<a class="person-link" href="#/personne/${encodeURIComponent(p.id)}">${escapeHtml(p.name)}</a>`).join(', ')
+      : '';
     people.hidden = !item.people?.length;
     img.alt = item.caption ?? title;
     status.textContent = '';
@@ -101,6 +104,8 @@ function createDialog() {
     </button>`;
   document.body.append(d);
   d.querySelector('.lightbox-close').addEventListener('click', () => d.close());
+  // Clic sur le nom d'une personne : on referme la photo, sa fiche s'ouvre.
+  d.addEventListener('click', e => { if (e.target.closest('.person-link')) d.close(); });
   // Clic à côté de la photo (sur le fond) : on ferme.
   d.addEventListener('click', e => {
     if (e.target === d || e.target.classList.contains('lightbox-figure')) d.close();
