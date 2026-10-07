@@ -1,63 +1,67 @@
 // Couche d'accès aux données : le seul fichier qui sait d'où viennent les données.
-//  - En local, si la base Docker tourne (voir docker-compose.yml), on lit et on écrit via son API.
-//  - Sinon (et toujours sur GitHub Pages), on lit data/family.json, en lecture seule.
-// Passer plus tard à Supabase ne demandera de modifier que ce fichier : c'est la même API (PostgREST).
+//  - Avec Supabase (voir js/config.js) : l'arbre n'est donné qu'avec le mot de passe de la famille,
+//    ou à un administrateur connecté et accepté ; seuls ces derniers peuvent le modifier.
+//  - Sans Supabase configuré (tests rapides) : lecture de data/family.json, en lecture seule.
 
-import { API_URL } from './config.js';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { SUPABASE } from './config.js';
 
 const DATA_URL = 'data/family.json';
 
-async function fetchJson(url, { timeout = 0, ...options } = {}) {
-  const ctrl = new AbortController();
-  const timer = timeout ? setTimeout(() => ctrl.abort(), timeout) : 0;
-  try {
-    const res = await fetch(url, { cache: 'no-cache', ...options, signal: ctrl.signal });
-    const body = await res.text();
-    const data = body ? JSON.parse(body) : null;
-    // PostgREST renvoie { message, ... } en cas d'erreur
-    if (!res.ok) throw new Error(data?.message || `Erreur HTTP ${res.status} sur ${url}`);
-    return data;
-  } finally {
-    clearTimeout(timer);
+export const supabase = SUPABASE.url && SUPABASE.key
+  ? createClient(SUPABASE.url, SUPABASE.key, {
+      // Le lien de connexion reçu par e-mail revient avec « ?code=… » (et non « #… »,
+      // qui entrerait en conflit avec les adresses des fiches « #/personne/… »).
+      auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    })
+  : null;
+
+// Erreur d'accès à l'arbre : code = 'wrong_password' | 'too_many_attempts' | 'need_password'.
+export class AccessError extends Error {
+  constructor(code) {
+    super({
+      wrong_password: 'Mot de passe incorrect.',
+      too_many_attempts: "Trop d'essais. Réessayez dans un quart d'heure.",
+      need_password: 'Le mot de passe de la famille est nécessaire.',
+    }[code] ?? code);
+    this.code = code;
   }
 }
 
+// Appelle une fonction de la base (voir supabase/migrations/) et renvoie son résultat.
+export async function rpc(name, args) {
+  const { data, error } = await supabase.rpc(name, args);
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Charge l'arbre. `access` : { password } pour la famille, ou { admin: true } pour un administrateur.
 // Renvoie la famille indexée, plus :
-//   source  : 'api' ou 'json'
-//   canEdit : true si on peut ajouter des personnes
+//   canEdit : true pour un administrateur accepté
 //   raw     : les données brutes (pour l'export en family.json)
-export async function loadFamily() {
-  if (API_URL) {
-    try {
-      const raw = await fetchJson(`${API_URL}/rpc/family`, { timeout: 2500 });
-      return { ...indexFamily(raw), raw, source: 'api', canEdit: true };
-    } catch (err) {
-      console.info(`Base locale indisponible (${err.message}) : lecture de ${DATA_URL}.`);
-    }
+export async function loadFamily(access = {}) {
+  if (!supabase) {
+    const res = await fetch(DATA_URL, { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`Impossible de charger ${DATA_URL} (HTTP ${res.status}).`);
+    const raw = await res.json();
+    return { ...indexFamily(raw), raw, canEdit: false };
   }
-  let raw;
-  try {
-    raw = await fetchJson(DATA_URL);
-  } catch (err) {
-    throw new Error(err instanceof SyntaxError
-      ? `Le fichier ${DATA_URL} n'est pas un JSON valide : ${err.message}`
-      : `Impossible de charger ${DATA_URL} (${err.message}).`);
+  if (access.admin) {
+    const raw = await rpc('family_admin');
+    return { ...indexFamily(raw), raw, canEdit: true };
   }
-  return { ...indexFamily(raw), raw, source: 'json', canEdit: false };
+  if (!access.password) throw new AccessError('need_password');
+  const raw = await rpc('family', { password: access.password });
+  if (raw?.error) throw new AccessError(raw.error);
+  return { ...indexFamily(raw), raw, canEdit: false };
 }
 
-// Ajoute une personne et la relie à l'arbre. `request` : voir api.add_person dans db/init/02-api.sql.
+// Ajoute une personne et la relie à l'arbre. `request` : voir add_person dans supabase/migrations/.
 // Renvoie l'identifiant de la nouvelle personne.
 export async function addPerson(request) {
   const res = await rpc('add_person', { payload: request });
   return res.id;
 }
-
-const rpc = (name, args) => fetchJson(`${API_URL}/rpc/${name}`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(args),
-});
 
 // Modifie les informations d'une personne (même format que request.person d'addPerson).
 export async function updatePerson(id, person) {

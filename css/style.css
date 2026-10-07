@@ -514,6 +514,12 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline
   background: var(--moss);
   color: var(--paper);
 }
+.edit-banner .banner-secondary {
+  background: transparent;
+  color: var(--moss-dark);
+  border: 1px solid color-mix(in srgb, var(--moss) 50%, transparent);
+}
+.edit-banner button[hidden] { display: none; }
 @media (max-width: 759px) {
   .edit-banner { top: auto; bottom: 16px; left: 16px; transform: none; max-width: calc(100% - 92px); }
   .edit-banner span { display: none; }
@@ -797,6 +803,125 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline
 }
 
 .intro[hidden] { display: none; }
+
+/* États de l'accueil : seul l'élément correspondant à l'état est affiché. */
+.intro .intro-cta, .intro .intro-loading, .intro .unlock { display: none; }
+.intro[data-state="ready"] .intro-cta { display: block; }
+.intro[data-state="loading"] .intro-loading { display: block; color: var(--ink-soft); margin-top: 28px; }
+.intro[data-state="locked"] .unlock { display: grid; }
+.intro[data-state="ready"] { cursor: pointer; }
+.intro:not([data-state="ready"]) { cursor: default; }
+
+.unlock {
+  margin-top: 26px;
+  gap: 10px;
+  justify-items: center;
+  width: min(380px, 100%);
+}
+.unlock-row { display: flex; gap: 8px; width: 100%; }
+.unlock input[type=password] {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--bark) 35%, transparent);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  color: var(--ink);
+}
+.unlock input[type=password]:focus { outline: 2px solid var(--focus); outline-offset: 1px; }
+.unlock button {
+  padding: 10px 20px;
+  font: inherit;
+  font-weight: 600;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.remember { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--ink-soft); cursor: pointer; }
+.remember input { accent-color: var(--moss); }
+.unlock-error {
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #B4413A 14%, var(--paper));
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+.unlock-error[hidden] { display: none; }
+.unlock.shake { animation: shake 0.35s; }
+@keyframes shake {
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+.admin-link {
+  position: absolute;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  padding: 6px 12px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.admin-link:hover { color: var(--ink); }
+
+/* Fenêtres du mode administrateur */
+.admin-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 2px 0 0; color: var(--ink-soft); }
+.admin-links .link-btn { margin: 0; color: var(--moss-dark); }
+.change-password { border-top: 1px solid color-mix(in srgb, var(--bark) 15%, transparent); padding-top: 10px; }
+.change-password summary { cursor: pointer; font-weight: 600; color: var(--moss-dark); }
+.change-password-body { display: grid; gap: 10px; margin-top: 10px; justify-items: start; }
+.change-password-body .field { width: 100%; }
+.save-password { padding: 7px 16px; font: inherit; font-weight: 600; border-radius: 999px; cursor: pointer; }
+.admin-hint { margin: 0; color: var(--ink-soft); line-height: 1.5; font-size: 0.92rem; }
+.admin-sent { margin: 0 0 8px; font-size: 1.05rem; }
+.admin-status { margin: 0; line-height: 1.55; }
+.admin-space { width: min(720px, calc(100% - 24px)); }
+.admin-space .space { display: flex; flex-direction: column; max-height: calc(100vh - 24px); }
+.admin-space h3 { margin: 6px 0 8px; font-family: var(--font-title); font-size: 1.3rem; color: var(--bark); }
+.admin-space section + section { margin-top: 10px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--bark) 15%, transparent); }
+.admin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+}
+.admin-row + .admin-row { border-top: 1px dashed color-mix(in srgb, var(--bark) 18%, transparent); }
+.admin-row small { display: block; color: var(--ink-soft); }
+.admin-row strong { word-break: break-all; }
+.row-actions { display: flex; gap: 6px; flex: none; }
+.row-actions button, .password-form > button, .backup-buttons button {
+  padding: 6px 14px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.btn-secondary.danger { color: #A3372F; border-color: color-mix(in srgb, #A3372F 45%, transparent) !important; }
+.tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--moss) 18%, transparent);
+  color: var(--moss-dark);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.empty { margin: 0; color: var(--ink-soft); font-style: italic; }
+.password-form { display: grid; gap: 10px; justify-items: start; }
+.password-form .row { width: 100%; }
+.space-note { margin: 4px 0 0; color: var(--moss-dark); font-size: 0.92rem; }
+.space-note:empty { display: none; }
+.backup-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.admin-space footer, .admin-login footer { flex-wrap: wrap; }
 
 /* Tant que l'accueil est affiché, l'arbre attend en coulisse… */
 .site-header, .stage, .controls, .hint {
