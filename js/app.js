@@ -566,9 +566,25 @@ function setupAdmin() {
 
 // ---------- Démarrage ----------
 
+// Boîte à outils : l'onglet à clé à molette ouvre ou ferme la colonne d'outils (Échap la ferme).
+function setupToolbox() {
+  const box = document.getElementById('toolbox');
+  const tab = document.getElementById('toolbox-tab');
+  const setOpen = open => {
+    box.classList.toggle('open', open);
+    tab.setAttribute('aria-expanded', String(open));
+    tab.setAttribute('aria-label', open ? 'Fermer les outils' : 'Outils');
+  };
+  tab.addEventListener('click', () => setOpen(!box.classList.contains('open')));
+  box.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && box.classList.contains('open')) { setOpen(false); tab.focus(); }
+  });
+}
+
 async function start() {
   setupIntro();
   setupAdmin();
+  setupToolbox();
 
   // Retour d'un lien reçu par e-mail (confirmation du compte, ou mot de passe oublié) ?
   const params = new URL(location.href).searchParams;

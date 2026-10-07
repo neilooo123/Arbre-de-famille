@@ -261,15 +261,77 @@ body {
 
 /* ---------- Commandes & aide ---------- */
 
-.controls {
+/* Boîte à outils : fermée, seul un petit onglet (clé à molette) dépasse du bord droit ;
+   ouverte, la colonne d'outils glisse à côté de lui. */
+.toolbox {
+  --tools-width: 68px;
   position: fixed;
-  right: max(16px, env(safe-area-inset-right));
+  right: 0;
   bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  transform: translateX(var(--tools-width));
+  transition: transform 0.25s ease;
+}
+.toolbox.open { transform: none; }
+.toolbox-tab {
+  width: 34px; height: 46px;
+  display: grid; place-items: center;
+  margin-bottom: 2px;
+  padding: 0 0 0 2px;
+  border: 1px solid color-mix(in srgb, var(--bark) 35%, transparent);
+  border-right: 0;
+  border-radius: 12px 0 0 12px;
+  background: var(--paper);
+  color: var(--bark-dark);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.toolbox-tab:hover { background: var(--cream); }
+.toolbox-tab svg {
+  width: 19px; height: 19px;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  transition: transform 0.25s ease;
+}
+.toolbox.open .toolbox-tab svg { transform: rotate(-45deg); }
+@media (prefers-color-scheme: dark) { .toolbox-tab { color: var(--ink); } }
+.controls {
+  width: var(--tools-width);
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
-  z-index: 2;
+  padding: 10px 0;
+  border-radius: 14px 0 0 14px;
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
+  box-shadow: var(--shadow);
 }
+/* Fermée : les outils sont hors de l'écran, ni cliquables ni atteignables au clavier. */
+.toolbox:not(.open) .controls { visibility: hidden; transition: visibility 0s 0.25s; }
+
+/* Nom de l'outil au survol (et au clavier) : une bulle à gauche du bouton. */
+[data-tip] { position: relative; }
+.toolbox [data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  right: calc(100% + 10px);
+  top: 50%;
+  translate: 0 -50%;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: rgba(40, 30, 20, 0.88);
+  color: #fff;
+  font: 600 0.82rem var(--font-text);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.toolbox [data-tip]:hover::after,
+.toolbox [data-tip]:focus-visible::after { opacity: 1; transition-delay: 0.15s; }
+/* La bulle de l'onglet n'est utile que quand la boîte est fermée. */
+.toolbox.open .toolbox-tab::after { display: none; }
 .controls button, .profile .close {
   width: 44px; height: 44px;
   display: grid; place-items: center;
