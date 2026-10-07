@@ -754,8 +754,11 @@ export function createTree(svg, family, { onSelect } = {}) {
     dropped = true;
     const animate = !reducedMotion.matches && pos.size <= CALM_ABOVE;
     for (const item of fallingLeaves) {
-      if (animate) leafLife(item, 600 + item.rand() * 2600);
-      else { item.el.style.transform = groundTransform(item); item.el.classList.add('fallen'); }
+      // Environ la moitié des feuilles tombe à l'arrivée ; les autres restent sur leur branche
+      // un temps choisi au hasard (8 à 45 s) avant de tomber à leur tour.
+      const fallsNow = item.rand() < 0.5;
+      if (animate) leafLife(item, fallsNow ? 600 + item.rand() * 2600 : 8000 + item.rand() * 37000);
+      else if (fallsNow) { item.el.style.transform = groundTransform(item); item.el.classList.add('fallen'); }
     }
   }
 
