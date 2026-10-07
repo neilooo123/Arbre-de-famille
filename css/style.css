@@ -37,8 +37,8 @@
   --shadow: 0 10px 30px rgba(60, 45, 30, 0.18);
   --focus: #2E6FA3;
 
-  --font-title: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  --font-text: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-title: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-text: 'Nunito Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   color-scheme: light;
 }
