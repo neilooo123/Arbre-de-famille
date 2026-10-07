@@ -1,0 +1,39 @@
+# Garde la base Supabase active : sur l'offre gratuite, un projet sans aucune visite pendant 7 jours
+# est mis en pause (l'arbre ne se charge plus). Cette tâche appelle tous les 3 jours la fonction
+# « ping » de la base, qui répond seulement « je suis là » (aucune donnée de la famille).
+# Lancement manuel possible : onglet Actions → « Garder Supabase actif » → Run workflow.
+
+name: Garder Supabase actif
+
+on:
+  schedule:
+    - cron: '17 6 */3 * *'   # tous les 3 jours, vers 8 h (heure de Paris)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Appeler la base
+        run: |
+          # Adresse du projet et clé publique (celle que le site utilise déjà), lues dans js/config.js.
+          URL=$(grep -m1 -oE "https://[a-z0-9]+\.supabase\.co" js/config.js)
+          KEY=$(grep -m1 -oE "eyJ[A-Za-z0-9._-]+" js/config.js)
+          for attempt in 1 2 3; do
+            RESPONSE=$(curl -sS --max-time 30 -X POST "$URL/rest/v1/rpc/ping" \
+              -H "apikey: $KEY" -H "Content-Type: application/json" -d '{}') || true
+            echo "Réponse : $RESPONSE"
+            if echo "$RESPONSE" | grep -q '"ok" *: *true'; then
+              echo "La base est active."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::La base n'a pas répondu. Elle est peut-être en pause : sur supabase.com, ouvrir le projet et cliquer sur « Restore project »."
+          exit 1
