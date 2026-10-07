@@ -520,9 +520,24 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline
   border: 1px solid color-mix(in srgb, var(--moss) 50%, transparent);
 }
 .edit-banner button[hidden] { display: none; }
+.edit-banner .label-short { display: none; }
 @media (max-width: 759px) {
-  .edit-banner { top: auto; bottom: 16px; left: 16px; transform: none; max-width: calc(100% - 92px); }
-  .edit-banner span { display: none; }
+  /* Téléphone : bandeau en bas à gauche, à côté de la colonne de boutons, libellés courts. */
+  .edit-banner {
+    top: auto;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    left: 16px;
+    transform: none;
+    max-width: calc(100% - 92px);
+    flex-wrap: wrap;
+    white-space: normal;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 18px;
+  }
+  .edit-banner .banner-title, .edit-banner .label-long { display: none; }
+  .edit-banner .label-short { display: inline; }
+  .edit-banner button { padding: 7px 12px; font-size: 0.85rem; }
 }
 
 .person-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }

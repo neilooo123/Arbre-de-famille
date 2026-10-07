@@ -129,9 +129,13 @@
     </div>
 
     <div id="edit-banner" class="edit-banner" role="status" hidden>
-      <span><strong>Mode édition</strong></span>
-      <button id="banner-admin-space" type="button" class="banner-secondary" hidden>Espace d'administration</button>
-      <button id="export-json" type="button">Télécharger family.json</button>
+      <span class="banner-title"><strong>Mode édition</strong></span>
+      <button id="banner-admin-space" type="button" class="banner-secondary" hidden>
+        <span class="label-long">Espace d'administration</span><span class="label-short">Administration</span>
+      </button>
+      <button id="export-json" type="button" title="Télécharger une sauvegarde de l'arbre (family.json)">
+        <span class="label-long">Télécharger family.json</span><span class="label-short">Sauvegarder</span>
+      </button>
     </div>
 
     <p class="hint">Cliquez sur une personne pour découvrir son histoire · Glissez pour vous déplacer · Molette ou pincement pour zoomer</p>
