@@ -104,8 +104,14 @@ export async function fetchFullPhoto(photoId, access = {}) {
 }
 
 // Ajoute une photo (déjà préparée : vignette + grande version), avec sa légende facultative.
-export async function addGalleryPhoto(personId, { thumb, full, caption = '' }) {
-  return rpc('add_photo', { target_id: personId, thumb, full_image: full, caption });
+// `tags` : identifiants des personnes identifiées sur la photo (elle apparaîtra aussi dans leur galerie).
+export async function addGalleryPhoto(personId, { thumb, full, caption = '', tags = [] }) {
+  return rpc('add_photo', { target_id: personId, thumb, full_image: full, caption, tags });
+}
+
+// Modifie la légende et les personnes identifiées d'une photo.
+export async function updatePhoto(photoId, { caption = '', tags = [] }) {
+  return rpc('update_photo', { photo_id: photoId, caption, tags });
 }
 
 export async function updatePhotoCaption(photoId, caption) {
@@ -116,13 +122,34 @@ export async function deleteGalleryPhoto(photoId) {
   await rpc('delete_photo', { photo_id: photoId });
 }
 
-// Contenu à jour de data/family.json (pour publier les ajouts sur GitHub Pages).
-export function familyJson(family) {
+// ---------- Portraits : vignette dans l'arbre, grand format à la demande ----------
+
+// Portrait en grand d'une personne (data URL), pour l'agrandir ou le modifier.
+export async function fetchPortrait(personId, access = {}) {
+  if (!supabase) return null;
+  const res = await rpc('person_portrait', { target_id: personId, password: access.password ?? null });
+  if (res?.error) throw new AccessError(res.error);
+  return res.photo;
+}
+
+// Enregistre des vignettes fabriquées dans le navigateur : [{ id, thumb }].
+export async function savePortraitThumbs(items) {
+  return rpc('set_portrait_thumbs', { items });
+}
+
+// Portraits en grand de tout l'arbre ({ id: photo }), pour une sauvegarde complète.
+export async function exportPortraits() {
+  return supabase ? rpc('export_portraits') : {};
+}
+
+// Contenu de family.json (sauvegarde). `portraits` : portraits en grand, sinon les vignettes de l'arbre.
+export function familyJson(family, portraits = {}) {
   const prune = obj => Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== null && v !== undefined));
   const raw = family.raw;
   return JSON.stringify({
-    persons: raw.persons.map(p => prune({
+    persons: raw.persons.map(({ photoThumbMissing, galleryCount, ...p }) => prune({
       ...p,
+      photo: portraits[p.id] ?? p.photo,
       birth: p.birth ? prune(p.birth) : null,
       death: p.death ? prune(p.death) : null,
       videos: (p.videos ?? []).map(prune),

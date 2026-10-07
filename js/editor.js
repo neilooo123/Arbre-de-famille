@@ -5,6 +5,7 @@
 
 import { fullName, lifeSpan, escapeHtml } from './data.js';
 import { youtubeId } from './profile.js';
+import { createCombobox, personOptions } from './combobox.js';
 
 const TITLES = {
   partner: 'Ajouter un conjoint',
@@ -150,7 +151,7 @@ function showDialog(d, html, setup) {
 // Formulaire d'ajout (relation + relativeId) ou de modification (editId).
 // `onSubmit(request)` enregistre (promesse) et renvoie l'id de la personne.
 // Renvoie une promesse résolue avec cet id, ou null si on annule.
-export function openPersonForm({ family, relativeId, relation, editId, onSubmit }) {
+export function openPersonForm({ family, relativeId, relation, editId, onSubmit, loadPortrait }) {
   const d = ensureDialog();
   const editing = !!editId;
   const current = editing ? family.get(editId) : null;
@@ -289,6 +290,8 @@ export function openPersonForm({ family, relativeId, relation, editId, onSubmit 
             </div>
             <input type="file" accept="image/*" class="photo-file" hidden>
             <input type="hidden" name="photo">
+            <input type="hidden" name="photoThumb">
+            <input type="hidden" name="photoChanged">
           </div>
         </div>
 
@@ -329,7 +332,7 @@ export function openPersonForm({ family, relativeId, relation, editId, onSubmit 
     error = d.querySelector('.form-error');
     submit = d.querySelector('[type=submit]');
     warning = d.querySelector('.form-warning');
-    setupPhotoPicker(form, start.photo, showError);
+    setupPhotoPicker(form, start.photo, showError, loadPortrait);
 
     // Case « Personne décédée » : fait apparaître la date et le lieu du décès.
     const deceasedBox = form.elements.deceased;
@@ -464,9 +467,11 @@ function missingFields(form) {
   return fields.filter(({ name }) => !String(data.get(name) ?? '').trim());
 }
 
-// Légendes des photos de galerie : un champ par photo (ajout de plusieurs photos, ou modification
-// d'une seule). photos : [{ thumb, caption }]. Renvoie la liste des légendes, ou null si on annule.
-export function openCaptionDialog({ photos, title, intro = '', submitLabel = 'Enregistrer' }) {
+// Légende et personnes identifiées de chaque photo de galerie (ajout de plusieurs photos, ou
+// modification d'une seule). photos : [{ thumb, caption, tags }] ; ownerId : la personne dont on
+// ouvre la galerie (déjà associée à la photo, donc absente de la liste).
+// Renvoie [{ caption, tags }], ou null si on annule.
+export function openCaptionDialog({ photos, title, intro = '', submitLabel = 'Enregistrer', family, ownerId }) {
   const d = ensureDialog();
   const html = `
     <form method="dialog" class="captions" novalidate>
@@ -478,9 +483,13 @@ export function openCaptionDialog({ photos, title, intro = '', submitLabel = 'En
         ${photos.map((ph, i) => `
           <div class="caption-row">
             <img src="${escapeHtml(ph.thumb)}" alt="">
-            <label class="field"><span>Légende${photos.length > 1 ? ` de la photo ${i + 1}` : ''} <small>(facultative)</small></span>
-              <input name="caption-${i}" maxlength="300" value="${escapeHtml(ph.caption ?? '')}"
-                     placeholder="Ex. : Mariage de Jean et Marie, 1956" autocomplete="off"></label>
+            <div class="caption-fields">
+              <label class="field"><span>Légende${photos.length > 1 ? ` de la photo ${i + 1}` : ''} <small>(facultative)</small></span>
+                <input name="caption-${i}" maxlength="300" value="${escapeHtml(ph.caption ?? '')}"
+                       placeholder="Ex. : Mariage de Jean et Marie, 1956" autocomplete="off"></label>
+              ${family ? `<div class="field"><span>Personnes sur la photo <small>(la photo apparaîtra aussi dans leur galerie)</small></span>
+                <div data-tags="${i}"></div></div>` : ''}
+            </div>
           </div>`).join('')}
       </div>
       <footer>
@@ -491,11 +500,29 @@ export function openCaptionDialog({ photos, title, intro = '', submitLabel = 'En
 
   return showDialog(d, html, () => {
     const form = d.querySelector('form');
+    // Un combobox (choix multiple) par photo pour identifier les personnes.
+    const pickers = photos.map((ph, i) => {
+      const slot = form.querySelector(`[data-tags="${i}"]`);
+      if (!slot) return null;
+      const picker = createCombobox({
+        options: personOptions(family, { exclude: [ownerId] }),
+        multiple: true,
+        selected: (ph.tags ?? []).filter(t => t !== ownerId),
+        placeholder: 'Choisir des personnes…',
+        searchPlaceholder: 'Prénom ou nom…',
+        emptyText: 'Personne ne correspond.',
+      });
+      slot.replaceWith(picker.element);
+      return picker;
+    });
     form.addEventListener('submit', e => {
       e.preventDefault();
-      finish?.(photos.map((_, i) => form.elements[`caption-${i}`].value.trim()));
+      finish?.(photos.map((_, i) => ({
+        caption: form.elements[`caption-${i}`].value.trim(),
+        tags: pickers[i]?.values ?? [],
+      })));
     });
-    queueMicrotask(() => form.elements['caption-0']?.focus());
+    queueMicrotask(() => form.elements['caption-0']?.focus({ preventScroll: true }));
   });
 }
 
@@ -563,12 +590,24 @@ async function readImage(blob) {
   }
 }
 
+const PORTRAIT_THUMB = 240;   // vignette du portrait affichée dans l'arbre (px)
+
+// Vignette légère d'un portrait (pour l'arbre), à partir du portrait en grand.
+export async function portraitThumb(dataUrl) {
+  const source = await createImageBitmap(await (await fetch(dataUrl)).blob());
+  try {
+    return renderPhoto(source, 0, PORTRAIT_THUMB, 0.8);
+  } finally {
+    source.close?.();
+  }
+}
+
 // Recadre l'image en carré (centré), la réduit et la fait pivoter de `angle` degrés
 // (multiple de 90). Renvoie une « data URL » JPEG, enregistrée telle quelle dans la base.
 // On repart toujours de l'image d'origine : pivoter plusieurs fois ne dégrade pas la photo.
-export function renderPhoto(source, angle = 0) {
+export function renderPhoto(source, angle = 0, maxSize = PHOTO_SIZE, quality = PHOTO_QUALITY) {
   const side = Math.min(source.width, source.height);
-  const size = Math.min(PHOTO_SIZE, side);
+  const size = Math.min(maxSize, side);
   const canvas = Object.assign(document.createElement('canvas'), { width: size, height: size });
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#fff';                       // fond blanc pour les PNG transparents
@@ -578,7 +617,7 @@ export function renderPhoto(source, angle = 0) {
   ctx.rotate(angle * Math.PI / 180);
   ctx.drawImage(source, (source.width - side) / 2, (source.height - side) / 2, side, side,
                 -size / 2, -size / 2, size, size);
-  return canvas.toDataURL('image/jpeg', PHOTO_QUALITY);
+  return canvas.toDataURL('image/jpeg', quality);
 }
 
 // Photo de galerie : une vignette carrée (300 px) pour la galerie, et une grande version
@@ -587,10 +626,11 @@ export async function prepareGalleryPhoto(file) {
   const source = await readImage(file);
   try {
     const thumbSide = Math.min(source.width, source.height);
-    const thumb = Object.assign(document.createElement('canvas'), { width: 300, height: 300 });
+    const T = 240;   // vignette de galerie : assez nette pour la grille, environ deux fois plus légère qu'avant
+    const thumb = Object.assign(document.createElement('canvas'), { width: T, height: T });
     const tctx = thumb.getContext('2d');
     tctx.imageSmoothingQuality = 'high';
-    tctx.drawImage(source, (source.width - thumbSide) / 2, (source.height - thumbSide) / 2, thumbSide, thumbSide, 0, 0, 300, 300);
+    tctx.drawImage(source, (source.width - thumbSide) / 2, (source.height - thumbSide) / 2, thumbSide, thumbSide, 0, 0, T, T);
 
     const scale = Math.min(1, 1600 / Math.max(source.width, source.height));
     const full = Object.assign(document.createElement('canvas'), {
@@ -602,16 +642,19 @@ export async function prepareGalleryPhoto(file) {
     fctx.imageSmoothingQuality = 'high';
     fctx.drawImage(source, 0, 0, full.width, full.height);
 
-    return { thumb: thumb.toDataURL('image/jpeg', 0.8), full: full.toDataURL('image/jpeg', 0.82) };
+    return { thumb: thumb.toDataURL('image/jpeg', 0.78), full: full.toDataURL('image/jpeg', 0.82) };
   } finally {
     source.close?.();
   }
 }
 
-function setupPhotoPicker(form, initialPhoto, showError) {
+// loadFull() : charge le portrait en grand déjà enregistré (pour le faire pivoter sans perte de qualité).
+function setupPhotoPicker(form, initialPhoto, showError, loadFull) {
   const picker = form.querySelector('.photo-picker');
   const file = picker.querySelector('.photo-file');
   const value = form.elements.photo;
+  const thumbValue = form.elements.photoThumb;
+  const changed = form.elements.photoChanged;
   const preview = picker.querySelector('.photo-preview');
   const pick = picker.querySelector('.pick-photo');
   const rotate = picker.querySelector('.photo-rotate');
@@ -620,6 +663,12 @@ function setupPhotoPicker(form, initialPhoto, showError) {
   let source = null;   // image d'origine (pour pivoter sans perte)
   let angle = 0;
 
+  // Nouveau portrait : on garde aussi sa vignette pour l'arbre, et on note qu'il a changé.
+  const set = dataUrl => {
+    show(dataUrl);
+    changed.value = '1';
+    thumbValue.value = dataUrl && source ? renderPhoto(source, angle, PORTRAIT_THUMB, 0.8) : '';
+  };
   const show = dataUrl => {
     value.value = dataUrl ?? '';
     preview.style.backgroundImage = dataUrl ? `url("${dataUrl}")` : '';
@@ -637,7 +686,7 @@ function setupPhotoPicker(form, initialPhoto, showError) {
       source?.close?.();
       source = bitmap;
       angle = 0;
-      show(renderPhoto(source, angle));
+      set(renderPhoto(source, angle));
     } catch (err) {
       showError(err.message);
     } finally {
@@ -649,10 +698,13 @@ function setupPhotoPicker(form, initialPhoto, showError) {
   const turn = async delta => {
     busy(true);
     try {
-      // Photo déjà enregistrée (modification d'une fiche) : on la relit une première fois.
-      if (!source) source = await readImage(await (await fetch(value.value)).blob());
+      // Photo déjà enregistrée (modification d'une fiche) : on relit une fois le portrait en grand.
+      if (!source) {
+        const full = (loadFull && await loadFull()) || value.value;
+        source = await readImage(await (await fetch(full)).blob());
+      }
       angle = (angle + delta + 360) % 360;
-      show(renderPhoto(source, angle));
+      set(renderPhoto(source, angle));
     } catch (err) {
       showError(err.message);
     } finally {
@@ -664,7 +716,7 @@ function setupPhotoPicker(form, initialPhoto, showError) {
   preview.addEventListener('click', () => file.click());
   picker.querySelector('.rotate-left').addEventListener('click', () => turn(-90));
   picker.querySelector('.rotate-right').addEventListener('click', () => turn(90));
-  remove.addEventListener('click', () => { source = null; angle = 0; show(null); });
+  remove.addEventListener('click', () => { source = null; angle = 0; set(null); });
   file.addEventListener('change', () => load(file.files[0]));
   picker.addEventListener('dragover', e => { e.preventDefault(); picker.classList.add('drop'); });
   picker.addEventListener('dragleave', () => picker.classList.remove('drop'));
@@ -720,7 +772,8 @@ function buildRequest(data, { relation, relativeId, current, youtubeIndex }) {
       birth: event(birthDate, text('birthPlace')),
       deceased,
       death: deceased ? event(deathDate, text('deathPlace')) : null,
-      photo: text('photo') || null,
+      // Portrait envoyé seulement s'il a changé (sinon la base garde l'actuel, en grand).
+      ...(data.get('photoChanged') ? { photo: text('photo') || null, photoThumb: text('photoThumb') || null } : {}),
       bio: text('bio') || null,
       videos,
     },

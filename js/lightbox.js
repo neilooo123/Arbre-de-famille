@@ -22,6 +22,7 @@ export function openLightbox({ items, index = 0, title = '' }) {
   const next = d.querySelector('.lightbox-next');
   const status = d.querySelector('.lightbox-status');
   const captionText = d.querySelector('.lightbox-caption');
+  const people = d.querySelector('.lightbox-people');
   caption.innerHTML = escapeHtml(title);
   prev.hidden = next.hidden = counter.hidden = items.length < 2;
 
@@ -31,6 +32,8 @@ export function openLightbox({ items, index = 0, title = '' }) {
     counter.textContent = `${current + 1} / ${items.length}`;
     captionText.textContent = item.caption ?? '';
     captionText.hidden = !item.caption;
+    people.textContent = item.people?.length ? `Avec : ${item.people.join(', ')}` : '';
+    people.hidden = !item.people?.length;
     img.alt = item.caption ?? title;
     status.textContent = '';
     // En attendant la grande version, on affiche la vignette (floue mais immédiate).
@@ -81,6 +84,7 @@ function createDialog() {
       <img class="lightbox-image" alt="">
       <figcaption>
         <span class="lightbox-caption" hidden></span>
+        <span class="lightbox-people" hidden></span>
         <span class="lightbox-title"></span>
         <span class="lightbox-counter"></span>
         <span class="lightbox-status" role="status"></span>

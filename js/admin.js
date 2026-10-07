@@ -3,7 +3,7 @@
 //  - espace d'administration (propriétaire) : accepter / refuser / retirer des adresses,
 //    changer le mot de passe de la famille, sauvegarder ou restaurer l'arbre.
 
-import { rpc, familyJson, escapeHtml } from './data.js';
+import { rpc, familyJson, exportPortraits, escapeHtml } from './data.js';
 import { signIn, signUp, sendPasswordReset, updatePassword, signOut, MIN_PASSWORD } from './auth.js';
 
 function makeDialog(className) {
@@ -327,7 +327,7 @@ export function openAdminSpace({ family, onImported }) {
     note.textContent = 'Préparation de la sauvegarde…';
     let backup;
     try {
-      const doc = JSON.parse(familyJson(family));
+      const doc = JSON.parse(familyJson(family, await exportPortraits()));
       doc.photos = await rpc('admin_export_photos');
       backup = JSON.stringify(doc, null, 2) + '\n';
       note.textContent = `Sauvegarde prête : ${doc.persons.length} personnes, ${doc.photos.length} photos de galerie.`;

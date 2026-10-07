@@ -3,12 +3,14 @@
 
 import {
   loadFamily, addPerson, linkPerson, updatePerson, deletePerson, setUnionEnded, familyJson, fullName, supabase, AccessError,
-  fetchGallery, fetchFullPhoto, addGalleryPhoto, deleteGalleryPhoto, updatePhotoCaption, escapeHtml,
+  fetchPortrait, savePortraitThumbs, exportPortraits,
+  fetchGallery, fetchFullPhoto, addGalleryPhoto, deleteGalleryPhoto, updatePhoto, escapeHtml,
 } from './data.js';
 import { createTree } from './tree.js';
 import { renderProfile } from './profile.js';
-import { openPersonForm, confirmDelete, prepareGalleryPhoto, openCaptionDialog } from './editor.js';
+import { openPersonForm, confirmDelete, prepareGalleryPhoto, openCaptionDialog, portraitThumb } from './editor.js';
 import { openLightbox } from './lightbox.js';
+import { createCombobox, personOptions } from './combobox.js';
 import {
   savedPassword, savePassword, forgetPassword, adminStatus, finishLoginRedirect, RECOVERY_FLAG,
 } from './auth.js';
@@ -120,9 +122,9 @@ async function uploadPhotos(id, files) {
 
   // 2. Une légende pour chacune (facultative).
   const captions = prepared.length ? await openCaptionDialog({
-    photos: prepared,
+    photos: prepared, family, ownerId: id,
     title: prepared.length > 1 ? `Ajouter ${prepared.length} photos` : 'Ajouter une photo',
-    intro: 'Vous pouvez donner une légende à chaque photo : qui, où, quand…',
+    intro: 'Pour chaque photo : une légende (qui, où, quand…) et les personnes qu’on y voit.',
     submitLabel: prepared.length > 1 ? 'Ajouter les photos' : 'Ajouter la photo',
   }) : [];
   if (!captions) {   // annulé
@@ -134,7 +136,7 @@ async function uploadPhotos(id, files) {
   for (const [i, photo] of prepared.entries()) {
     if (status) status.textContent = `Ajout de la photo ${i + 1} sur ${prepared.length}…`;
     try {
-      await addGalleryPhoto(id, { ...photo, caption: captions[i] });
+      await addGalleryPhoto(id, { ...photo, ...captions[i] });
     } catch (err) {
       failures.push(`${photo.name} : ${err.message}`);
     }
@@ -250,6 +252,8 @@ async function open(newAccess) {
   family = await loadFamily(newAccess);
   access = newAccess;
   buildTree();
+  updateSearch();
+  makeMissingThumbs();
   setupControls();
   updateEditing();
   setIntroState('ready');
@@ -260,6 +264,7 @@ async function reload(focusId) {
   family = await loadFamily(access);
   galleries.clear();
   buildTree();
+  updateSearch();
   updateEditing();
   if (focusId && focusId !== personFromHash()) goTo(focusId);
   else {
@@ -267,6 +272,55 @@ async function reload(focusId) {
     if (focusId) closeProfile();
     route();
   }
+}
+
+// Portraits enregistrés avant l'optimisation : un administrateur fabrique leur vignette légère,
+// une fois pour toutes, en arrière-plan. Les visites suivantes chargent alors l'arbre bien plus vite.
+async function makeMissingThumbs() {
+  if (!family?.canEdit) return;
+  const todo = family.raw.persons.filter(p => p.photoThumbMissing && p.photo);
+  if (!todo.length) return;
+  await new Promise(r => (window.requestIdleCallback ?? setTimeout)(r));
+  const items = [];
+  for (const p of todo) {
+    try { items.push({ id: p.id, thumb: await portraitThumb(p.photo) }); } catch (err) { console.warn(p.id, err); }
+  }
+  try {
+    const res = await savePortraitThumbs(items);
+    console.info(`Vignettes de portrait créées : ${res.updated}`);
+  } catch (err) {
+    console.warn('Vignettes de portrait non enregistrées :', err.message);
+  }
+}
+
+// ---------- Recherche d'une personne (combobox en haut de l'écran) ----------
+
+let search = null;
+
+function updateSearch() {
+  const options = personOptions(family);
+  if (search) { search.setOptions(options); return; }
+  search = createCombobox({
+    options,
+    placeholder: 'Rechercher une personne…',
+    searchPlaceholder: 'Prénom ou nom…',
+    emptyText: 'Personne ne correspond.',
+    icon: '<svg class="combobox-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+    onSelect: id => {
+      if (isIntro()) enter();
+      if (personFromHash() === id) tree.focus(id, { rightInset: panelInset() });
+      else goTo(id);
+    },
+  });
+  search.element.classList.add('person-search');
+  document.getElementById('person-search').replaceWith(search.element);
+  // Ctrl+K (ou Cmd+K) : ouvrir la recherche depuis n'importe où.
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && family && !document.querySelector('dialog[open]')) {
+      e.preventDefault();
+      search.open();
+    }
+  });
 }
 
 function buildTree() {
@@ -298,7 +352,10 @@ function setEditing(on) {
 // Affiche ou masque le crayon selon les droits de la personne.
 function updateEditing() {
   editToggle.hidden = !family?.canEdit;
-  document.getElementById('banner-admin-space').hidden = !(status?.role === 'owner' && status?.status === 'approved');
+  // Espace d'administration et sauvegarde : réservés au propriétaire du site.
+  const isOwner = status?.role === 'owner' && status?.status === 'approved';
+  document.getElementById('banner-admin-space').hidden = !isOwner;
+  document.getElementById('export-json').hidden = !isOwner;
   if (!family?.canEdit) {
     document.body.classList.remove('editing');
     editBanner.hidden = true;
@@ -335,13 +392,15 @@ function setupControls() {
     const person = family.get(id);
 
     if (btn.dataset.zoomPortrait !== undefined) {
-      openLightbox({ items: [{ src: person.photo }], title: fullName(person) });
+      // La vignette s'affiche tout de suite, le portrait en grand se charge par-dessus.
+      openLightbox({ items: [{ thumb: person.photo, load: () => fetchPortrait(id, access) }], title: fullName(person) });
       return;
     }
     if (btn.dataset.photoIndex !== undefined) {
       openLightbox({
         items: (galleries.get(id) ?? []).map(ph => ({
           thumb: ph.thumb, caption: ph.caption, load: () => fetchFullPhoto(ph.id, access),
+          people: [ph.owner, ...(ph.tags ?? [])].filter(p => p && p !== id && family.get(p)).map(p => fullName(family.get(p))),
         })),
         index: Number(btn.dataset.photoIndex),
         title: fullName(person),
@@ -368,20 +427,25 @@ function setupControls() {
     if (btn.dataset.captionPhoto) {
       const photo = galleries.get(id)?.find(ph => String(ph.id) === btn.dataset.captionPhoto);
       if (!photo) return;
-      const captions = await openCaptionDialog({ photos: [photo], title: 'Légende de la photo' });
+      const owner = photo.owner ?? id;
+      const captions = await openCaptionDialog({
+        photos: [photo], title: 'Légende et personnes de la photo', family, ownerId: owner,
+      });
       if (!captions) return;
       try {
-        const res = await updatePhotoCaption(photo.id, captions[0]);
-        photo.caption = res.caption;
-        const grid = panelBody.querySelector('[data-gallery] .gallery-grid');
-        if (grid && currentId === id) renderGalleryGrid(grid, id, fullName(person));
+        await updatePhoto(photo.id, captions[0]);
+        await reload(id);   // la photo peut apparaître ou disparaître d'autres galeries
       } catch (err) {
-        alert(`La légende n'a pas pu être enregistrée : ${err.message}`);
+        alert(`Les changements n'ont pas pu être enregistrés : ${err.message}`);
       }
       return;
     }
     if (btn.dataset.deletePhoto) {
-      if (!confirm('Supprimer définitivement cette photo de la galerie ?')) return;
+      const photo = galleries.get(id)?.find(ph => String(ph.id) === btn.dataset.deletePhoto);
+      const others = [photo?.owner, ...(photo?.tags ?? [])].filter(p => p && p !== id && family.get(p)).map(p => fullName(family.get(p)));
+      if (!confirm(others.length
+        ? `Supprimer définitivement cette photo ? Elle disparaîtra aussi de la galerie de : ${others.join(', ')}.`
+        : 'Supprimer définitivement cette photo de la galerie ?')) return;
       btn.disabled = true;
       try {
         await deleteGalleryPhoto(Number(btn.dataset.deletePhoto));
@@ -403,6 +467,7 @@ function setupControls() {
     } else if (btn.dataset.action === 'edit') {
       const saved = await openPersonForm({
         family, editId: id, onSubmit: request => updatePerson(id, request.person),
+        loadPortrait: () => fetchPortrait(id, access),
       });
       if (saved) await reload(id);
     } else if (btn.dataset.action === 'delete') {
@@ -414,8 +479,11 @@ function setupControls() {
     }
   });
 
-  document.getElementById('export-json').addEventListener('click', () => {
-    const blob = new Blob([familyJson(family)], { type: 'application/json' });
+  document.getElementById('export-json').addEventListener('click', async () => {
+    // Sauvegarde complète : avec les portraits en grand (l'arbre n'en a que les vignettes).
+    let portraits = {};
+    try { portraits = await exportPortraits(); } catch (err) { console.warn(err); }
+    const blob = new Blob([familyJson(family, portraits)], { type: 'application/json' });
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'family.json' });
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);

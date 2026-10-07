@@ -179,7 +179,7 @@ body {
 .branch.couple.former { stroke-dasharray: 1 8; stroke-width: 5; stroke-linecap: round; opacity: 0.9; }
 
 /* Colombe sous la vignette d'une personne décédée */
-.dove-body, .dove-wing, .dove-tail { fill: #FBF7EF; stroke: #8A7E70; stroke-width: 0.9; stroke-linejoin: round; }
+.dove-body, .dove-wing, .dove-tail { fill: #FBF7EF; stroke: #6A5E52; stroke-width: 1; stroke-linejoin: round; }
 .dove-wing { fill: #F1EADB; }
 .dove-eye { fill: #4E3A2B; }
 .dove-stem { fill: none; stroke: #5B7553; stroke-width: 1; stroke-linecap: round; }
@@ -572,6 +572,7 @@ button.portrait:hover { transform: scale(1.04); }
 .lightbox figcaption { flex-direction: column; align-items: center; text-align: center; gap: 4px; max-width: 760px; }
 .lightbox-caption { font-size: 1.1rem; line-height: 1.4; }
 .lightbox-caption[hidden] { display: none; }
+.lightbox-people { font-size: 0.92rem; opacity: 0.85; font-style: italic; }
 .lightbox-title { font-family: var(--font-title); font-size: 1.05rem; opacity: 0.8; }
 .lightbox-counter { opacity: 0.75; }
 .lightbox-counter[hidden] { display: none; }
@@ -647,9 +648,9 @@ button.portrait:hover { transform: scale(1.04); }
 
 .edit-banner {
   position: fixed;
+  /* En haut à droite : loin du titre et de la recherche, en haut à gauche. */
   top: max(14px, env(safe-area-inset-top));
-  left: 50%;
-  transform: translateX(-50%);
+  right: max(16px, env(safe-area-inset-right));
   z-index: 2;
   display: flex;
   align-items: center;
@@ -689,6 +690,7 @@ button.portrait:hover { transform: scale(1.04); }
     top: auto;
     bottom: max(16px, env(safe-area-inset-bottom));
     left: 16px;
+    right: auto;
     transform: none;
     max-width: calc(100% - 92px);
     flex-wrap: wrap;
@@ -846,6 +848,124 @@ button.portrait:hover { transform: scale(1.04); }
 .picker-name { font-weight: 600; }
 .picker-list small { color: var(--ink-soft); }
 .picker-empty { margin: 0; color: var(--ink-soft); font-style: italic; }
+
+/* ---------- Combobox (sur le modèle de shadcn/ui) ---------- */
+.combobox { position: relative; }
+.combobox-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--bark) 25%, transparent);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(50, 35, 20, 0.06);
+  cursor: pointer;
+}
+.combobox-trigger:hover { background: var(--cream); }
+.combobox-trigger:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.combobox-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combobox-chevron, .combobox-icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.6; }
+.combobox-popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  width: max(100%, 280px);
+  max-width: calc(100vw - 32px);
+  background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--bark) 22%, transparent);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(40, 30, 20, 0.22);
+  overflow: hidden;
+  animation: combobox-in 0.12s ease-out;
+}
+@keyframes combobox-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.combobox-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--bark) 15%, transparent);
+}
+.combobox-search svg { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--ink-soft); stroke-width: 2; stroke-linecap: round; }
+.combobox-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.combobox-list { list-style: none; margin: 0; padding: 4px; max-height: 280px; overflow-y: auto; }
+.combobox-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.92rem;
+}
+.combobox-list li.active { background: color-mix(in srgb, var(--leaf-2) 22%, var(--cream)); }
+.combobox-avatar img, .combobox-avatar span {
+  width: 28px; height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--cream);
+  font-family: var(--font-title);
+  font-size: 0.8rem;
+  color: var(--moss-dark);
+}
+.combobox-text { flex: 1; display: grid; min-width: 0; }
+.combobox-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combobox-text small { color: var(--ink-soft); font-size: 0.78rem; }
+.combobox-check { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--moss); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; visibility: hidden; }
+.combobox-list li[aria-selected="true"] .combobox-check { visibility: visible; }
+.combobox-empty { margin: 0; padding: 18px 12px; text-align: center; font-size: 0.9rem; color: var(--ink-soft); }
+.combobox-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.combobox-tags:empty { display: none; }
+.combobox-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--moss) 16%, var(--cream));
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--moss-dark);
+}
+.combobox-tag button {
+  width: 20px; height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.combobox-tag button:hover { background: color-mix(in srgb, var(--moss) 25%, transparent); }
+
+/* Recherche d'une personne, sous le titre */
+.site-header .person-search { pointer-events: auto; width: min(300px, calc(100vw - 92px)); margin-top: 10px; }
+.site-header .person-search .combobox-trigger { background: color-mix(in srgb, var(--paper) 92%, transparent); }
+
+/* Fenêtre légende + personnes */
+.captions .caption-row { align-items: flex-start; }
+.caption-fields { flex: 1; display: grid; gap: 10px; min-width: 0; }
 
 /* Choix de la photo */
 .photo-picker {

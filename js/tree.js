@@ -317,9 +317,9 @@ function windSway(target) {
 // Classe CSS selon le sexe : la couleur du médaillon en dépend (voir --female / --male).
 const sexClass = p => (p.sex === 'F' ? ' female' : p.sex === 'M' ? ' male' : '');
 
-// Petite colombe en vol, une fleur dans le bec, sous la vignette d'une personne décédée.
+// Petite colombe en vol, une fleur dans le bec, à cheval sur le bas de la vignette d'une personne décédée.
 function dove(y) {
-  const g = el('g', { class: 'dove', transform: `translate(-2 ${y}) scale(1.5)` });
+  const g = el('g', { class: 'dove', transform: `translate(-2 ${y}) scale(1.05)` });
   g.innerHTML = `
     <title>Décédé(e)</title>
     <path class="dove-tail" d="M-10 2 L-15 -2 L-14.5 4 Z"/>
@@ -337,9 +337,8 @@ function dove(y) {
 }
 
 export function createTree(svg, family, { onSelect } = {}) {
-  // Hauteur, sous le centre d'une vignette, où vient s'accrocher la branche qui monte vers elle
-  // (plus bas quand la colombe est affichée sous le nom).
-  const attachBelow = id => R + (family.get(id)?.deceased ? 98 : 66);
+  // Hauteur, sous le centre d'une vignette, où vient s'accrocher la branche qui monte vers elle.
+  const attachBelow = () => R + 66;
   const pos = layoutTree(family);
   const rand = seeded(7);
   svg.replaceChildren();
@@ -516,7 +515,8 @@ export function createTree(svg, family, { onSelect } = {}) {
     const years = el('text', { class: 'years', y: R + 60, 'text-anchor': 'middle' });
     years.textContent = lifeSpan(person);
     sway.append(name, last, years);
-    if (person.deceased) sway.append(dove(R + 82));
+    // (la colombe est ajoutée en dernier : elle passe par-dessus le cadre de la vignette)
+    if (person.deceased) sway.append(dove(R - 3));
 
     g.append(sway);
     const wind = windSway(sway);
@@ -660,7 +660,10 @@ export function createTree(svg, family, { onSelect } = {}) {
   // Zone de l'écran réellement libre : on retire l'en-tête, la barre d'aide, les boutons
   // de zoom (colonne de droite) et le panneau de fiche s'il est ouvert.
   function visibleArea(r, rightInset) {
-    const top = r.height > 500 ? 96 : 80, bottom = 48, controls = 72;
+    // En haut : sous l'en-tête (titre, sous-titre et recherche), quelle que soit sa hauteur réelle.
+    const header = document.querySelector('.site-header')?.getBoundingClientRect();
+    const top = header?.height ? Math.min(r.height * 0.35, header.bottom + 12) : (r.height > 500 ? 96 : 80);
+    const bottom = 48, controls = 72;
     const right = Math.max(rightInset, controls);
     return { left: 0, top, w: Math.max(1, r.width - right), h: Math.max(1, r.height - top - bottom) };
   }
