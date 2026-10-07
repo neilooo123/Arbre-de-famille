@@ -74,6 +74,36 @@ export async function deletePerson(id) {
   await rpc('delete_person', { target_id: id });
 }
 
+// ---------- Galerie de photos (chargée à l'ouverture d'une fiche) ----------
+
+// Vignettes de la galerie d'une personne : [{ id, thumb, caption }].
+export async function fetchGallery(personId, access = {}) {
+  if (!supabase) return [];
+  const res = await rpc('person_photos', { target_id: personId, password: access.password ?? null });
+  if (res?.error) throw new AccessError(res.error);
+  return res;
+}
+
+// Grande version d'une photo de galerie (data URL).
+export async function fetchFullPhoto(photoId, access = {}) {
+  const res = await rpc('photo_full', { photo_id: photoId, password: access.password ?? null });
+  if (res?.error) throw new AccessError(res.error);
+  return res.full;
+}
+
+// Ajoute une photo (déjà préparée : vignette + grande version), avec sa légende facultative.
+export async function addGalleryPhoto(personId, { thumb, full, caption = '' }) {
+  return rpc('add_photo', { target_id: personId, thumb, full_image: full, caption });
+}
+
+export async function updatePhotoCaption(photoId, caption) {
+  return rpc('update_photo_caption', { photo_id: photoId, caption });
+}
+
+export async function deleteGalleryPhoto(photoId) {
+  await rpc('delete_photo', { photo_id: photoId });
+}
+
 // Contenu à jour de data/family.json (pour publier les ajouts sur GitHub Pages).
 export function familyJson(family) {
   const prune = obj => Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== null && v !== undefined));

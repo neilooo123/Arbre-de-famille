@@ -301,6 +301,41 @@ function missingFields(form) {
   return CHECKED_FIELDS.filter(({ name }) => !String(data.get(name) ?? '').trim());
 }
 
+// Légendes des photos de galerie : un champ par photo (ajout de plusieurs photos, ou modification
+// d'une seule). photos : [{ thumb, caption }]. Renvoie la liste des légendes, ou null si on annule.
+export function openCaptionDialog({ photos, title, intro = '', submitLabel = 'Enregistrer' }) {
+  const d = ensureDialog();
+  const html = `
+    <form method="dialog" class="captions" novalidate>
+      <header>
+        <h2 id="person-form-title">${escapeHtml(title)}</h2>
+        ${intro ? `<p>${escapeHtml(intro)}</p>` : ''}
+      </header>
+      <div class="form-body">
+        ${photos.map((ph, i) => `
+          <div class="caption-row">
+            <img src="${escapeHtml(ph.thumb)}" alt="">
+            <label class="field"><span>Légende${photos.length > 1 ? ` de la photo ${i + 1}` : ''} <small>(facultative)</small></span>
+              <input name="caption-${i}" maxlength="300" value="${escapeHtml(ph.caption ?? '')}"
+                     placeholder="Ex. : Mariage de Jean et Marie, 1956" autocomplete="off"></label>
+          </div>`).join('')}
+      </div>
+      <footer>
+        <button type="button" class="btn-secondary" value="cancel">Annuler</button>
+        <button type="submit" class="btn-primary">${escapeHtml(submitLabel)}</button>
+      </footer>
+    </form>`;
+
+  return showDialog(d, html, () => {
+    const form = d.querySelector('form');
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      finish?.(photos.map((_, i) => form.elements[`caption-${i}`].value.trim()));
+    });
+    queueMicrotask(() => form.elements['caption-0']?.focus());
+  });
+}
+
 // Demande confirmation avant de supprimer quelqu'un. `onConfirm()` supprime (promesse).
 // Renvoie une promesse résolue avec true si la personne a été supprimée.
 export function confirmDelete({ family, id, onConfirm }) {
@@ -381,6 +416,33 @@ export function renderPhoto(source, angle = 0) {
   ctx.drawImage(source, (source.width - side) / 2, (source.height - side) / 2, side, side,
                 -size / 2, -size / 2, size, size);
   return canvas.toDataURL('image/jpeg', PHOTO_QUALITY);
+}
+
+// Photo de galerie : une vignette carrée (300 px) pour la galerie, et une grande version
+// (1600 px maximum de côté, sans recadrage) affichée quand on agrandit la photo.
+export async function prepareGalleryPhoto(file) {
+  const source = await readImage(file);
+  try {
+    const thumbSide = Math.min(source.width, source.height);
+    const thumb = Object.assign(document.createElement('canvas'), { width: 300, height: 300 });
+    const tctx = thumb.getContext('2d');
+    tctx.imageSmoothingQuality = 'high';
+    tctx.drawImage(source, (source.width - thumbSide) / 2, (source.height - thumbSide) / 2, thumbSide, thumbSide, 0, 0, 300, 300);
+
+    const scale = Math.min(1, 1600 / Math.max(source.width, source.height));
+    const full = Object.assign(document.createElement('canvas'), {
+      width: Math.round(source.width * scale), height: Math.round(source.height * scale),
+    });
+    const fctx = full.getContext('2d');
+    fctx.fillStyle = '#fff';
+    fctx.fillRect(0, 0, full.width, full.height);
+    fctx.imageSmoothingQuality = 'high';
+    fctx.drawImage(source, 0, 0, full.width, full.height);
+
+    return { thumb: thumb.toDataURL('image/jpeg', 0.8), full: full.toDataURL('image/jpeg', 0.82) };
+  } finally {
+    source.close?.();
+  }
 }
 
 function setupPhotoPicker(form, initialPhoto, showError) {

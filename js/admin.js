@@ -321,8 +321,22 @@ export function openAdminSpace({ family, onImported }) {
     }
   });
 
-  d.querySelector('.download').addEventListener('click', () => {
-    const blob = new Blob([familyJson(family)], { type: 'application/json' });
+  // Sauvegarde complète : l'arbre et les photos des galeries.
+  d.querySelector('.download').addEventListener('click', async () => {
+    const note = d.querySelector('.backup-note');
+    note.textContent = 'Préparation de la sauvegarde…';
+    let backup;
+    try {
+      const doc = JSON.parse(familyJson(family));
+      doc.photos = await rpc('admin_export_photos');
+      backup = JSON.stringify(doc, null, 2) + '\n';
+      note.textContent = `Sauvegarde prête : ${doc.persons.length} personnes, ${doc.photos.length} photos de galerie.`;
+    } catch (err) {
+      note.textContent = '';
+      fail(err);
+      return;
+    }
+    const blob = new Blob([backup], { type: 'application/json' });
     const a = Object.assign(document.createElement('a'), {
       href: URL.createObjectURL(blob),
       download: `arbre-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`,
@@ -346,7 +360,7 @@ export function openAdminSpace({ family, onImported }) {
       }
       if (!confirm(`Remplacer tout l'arbre actuel par ce fichier (${doc.persons.length} personnes) ? Cette action est définitive.`)) return;
       const res = await rpc('admin_import', { doc });
-      note.textContent = `Arbre restauré : ${res.persons} personnes.`;
+      note.textContent = `Arbre restauré : ${res.persons} personnes, ${res.photos ?? 0} photos de galerie.`;
       onImported?.();
     } catch (err) {
       fail(err instanceof SyntaxError ? new Error("Ce fichier n'est pas un JSON valide.") : err);

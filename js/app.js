@@ -3,10 +3,12 @@
 
 import {
   loadFamily, addPerson, updatePerson, deletePerson, familyJson, fullName, supabase, AccessError,
+  fetchGallery, fetchFullPhoto, addGalleryPhoto, deleteGalleryPhoto, updatePhotoCaption, escapeHtml,
 } from './data.js';
 import { createTree } from './tree.js';
 import { renderProfile } from './profile.js';
-import { openPersonForm, confirmDelete } from './editor.js';
+import { openPersonForm, confirmDelete, prepareGalleryPhoto, openCaptionDialog } from './editor.js';
+import { openLightbox } from './lightbox.js';
 import {
   savedPassword, savePassword, forgetPassword, adminStatus, finishLoginRedirect, RECOVERY_FLAG,
 } from './auth.js';
@@ -39,7 +41,7 @@ function openProfile(id) {
   if (!family?.get(id)) { closeProfile(); return; }
   if (!panel.classList.contains('open')) lastFocus = document.activeElement;
   currentId = id;
-  renderProfile(panelBody, family, id, { editing: isEditing() });
+  showProfile(id);
   panel.classList.add('open');
   panel.setAttribute('aria-hidden', 'false');
   panel.removeAttribute('inert');
@@ -49,6 +51,99 @@ function openProfile(id) {
   tree.select(id);
   tree.focus(id, { rightInset: panelInset() });
   panel.querySelector('.close').focus({ preventScroll: true });
+}
+
+// ---------- Galerie de photos ----------
+
+const galleries = new Map();   // personne → vignettes déjà chargées [{ id, thumb }]
+
+// Affiche la fiche, puis charge sa galerie (à part, pour ne pas ralentir l'ouverture).
+function showProfile(id) {
+  renderProfile(panelBody, family, id, { editing: isEditing() });
+  if (panelBody.querySelector('[data-gallery]')) loadGallery(id);
+}
+
+async function loadGallery(id) {
+  const grid = panelBody.querySelector('[data-gallery] .gallery-grid');
+  try {
+    if (!galleries.has(id)) galleries.set(id, await fetchGallery(id, access));
+  } catch (err) {
+    if (currentId === id && grid) grid.innerHTML = `<p class="gallery-error">Impossible de charger les photos : ${escapeHtml(err.message)}</p>`;
+    return;
+  }
+  if (currentId !== id || !grid?.isConnected) return;   // on a changé de fiche entre-temps
+  const name = fullName(family.get(id));
+  renderGalleryGrid(grid, id, name);
+}
+
+// Vignettes (avec leur légende) et, en mode édition, les boutons ✎ (légende) et ✕ (supprimer).
+function renderGalleryGrid(grid, id, name) {
+  grid.innerHTML = galleries.get(id).map((ph, i) => {
+    const label = ph.caption ? 'Modifier la légende' : 'Ajouter une légende';
+    return `
+    <figure class="thumb-wrap">
+      <button type="button" class="thumb" data-photo-index="${i}"
+              aria-label="Agrandir la photo ${i + 1} de ${escapeHtml(name)}${ph.caption ? ` : ${escapeHtml(ph.caption)}` : ''}"
+              ${ph.caption ? `title="${escapeHtml(ph.caption)}"` : ''}>
+        <img src="${escapeHtml(ph.thumb)}" alt="" loading="lazy">
+      </button>
+      ${ph.caption ? `<figcaption>${escapeHtml(ph.caption)}</figcaption>` : ''}
+      ${isEditing() ? `
+        <button type="button" class="thumb-tool thumb-caption" data-caption-photo="${ph.id}" aria-label="${label}" title="${label}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg></button>
+        <button type="button" class="thumb-tool thumb-delete" data-delete-photo="${ph.id}" aria-label="Supprimer cette photo" title="Supprimer cette photo">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : ''}
+    </figure>`;
+  }).join('');
+}
+
+// Ajoute les photos choisies une par une, en affichant l'avancement.
+async function uploadPhotos(id, files) {
+  const status = panelBody.querySelector('.gallery-status');
+  const button = panelBody.querySelector('[data-add-photos]');
+  const images = [...files].filter(f => f.type.startsWith('image/'));
+  if (!images.length) return;
+  button.disabled = true;
+  const failures = [];
+
+  // 1. Préparation des photos (recadrage, réduction), pour pouvoir les montrer avec leur légende.
+  const prepared = [];
+  for (const [i, file] of images.entries()) {
+    if (status) status.textContent = `Préparation de la photo ${i + 1} sur ${images.length}…`;
+    try {
+      prepared.push({ ...(await prepareGalleryPhoto(file)), name: file.name });
+    } catch (err) {
+      failures.push(`${file.name} : ${err.message}`);
+    }
+  }
+  if (status) status.textContent = '';
+
+  // 2. Une légende pour chacune (facultative).
+  const captions = prepared.length ? await openCaptionDialog({
+    photos: prepared,
+    title: prepared.length > 1 ? `Ajouter ${prepared.length} photos` : 'Ajouter une photo',
+    intro: 'Vous pouvez donner une légende à chaque photo : qui, où, quand…',
+    submitLabel: prepared.length > 1 ? 'Ajouter les photos' : 'Ajouter la photo',
+  }) : [];
+  if (!captions) {   // annulé
+    button.disabled = false;
+    return;
+  }
+
+  // 3. Envoi, une photo à la fois.
+  for (const [i, photo] of prepared.entries()) {
+    if (status) status.textContent = `Ajout de la photo ${i + 1} sur ${prepared.length}…`;
+    try {
+      await addGalleryPhoto(id, { ...photo, caption: captions[i] });
+    } catch (err) {
+      failures.push(`${photo.name} : ${err.message}`);
+    }
+  }
+  await reload(id);
+  const note = panelBody.querySelector('.gallery-status');
+  if (note) note.textContent = failures.length
+    ? `${images.length - failures.length} photo(s) ajoutée(s). Non ajoutées — ${failures.join(' ; ')}`
+    : `${images.length} photo(s) ajoutée(s).`;
 }
 
 function closeProfile() {
@@ -163,6 +258,7 @@ async function open(newAccess) {
 // Recharge les données et redessine l'arbre, puis ouvre la fiche de `focusId`.
 async function reload(focusId) {
   family = await loadFamily(access);
+  galleries.clear();
   buildTree();
   updateEditing();
   if (focusId && focusId !== personFromHash()) goTo(focusId);
@@ -196,7 +292,7 @@ function setEditing(on) {
   editToggle.setAttribute('aria-pressed', String(on));
   editBanner.hidden = !on;
   try { localStorage.setItem(EDIT_KEY, on ? '1' : ''); } catch { /* navigation privée : sans gravité */ }
-  if (currentId && family) renderProfile(panelBody, family, currentId, { editing: on });
+  if (currentId && family) showProfile(currentId);
 }
 
 // Affiche ou masque le crayon selon les droits de la personne.
@@ -233,9 +329,58 @@ function setupControls() {
 
   // Boutons de la fiche : « Modifier la fiche », « Supprimer », « + Conjoint », « + Enfant »…
   panelBody.addEventListener('click', async e => {
-    const btn = e.target.closest('[data-add], [data-action]');
+    const btn = e.target.closest('[data-add], [data-action], [data-zoom-portrait], [data-photo-index], [data-delete-photo], [data-caption-photo], [data-add-photos]');
     if (!btn || !currentId) return;
     const id = currentId;
+    const person = family.get(id);
+
+    if (btn.dataset.zoomPortrait !== undefined) {
+      openLightbox({ items: [{ src: person.photo }], title: fullName(person) });
+      return;
+    }
+    if (btn.dataset.photoIndex !== undefined) {
+      openLightbox({
+        items: (galleries.get(id) ?? []).map(ph => ({
+          thumb: ph.thumb, caption: ph.caption, load: () => fetchFullPhoto(ph.id, access),
+        })),
+        index: Number(btn.dataset.photoIndex),
+        title: fullName(person),
+      });
+      return;
+    }
+    if (btn.dataset.addPhotos !== undefined) {
+      const input = panelBody.querySelector('[data-photo-input]');
+      input.onchange = () => uploadPhotos(id, input.files);
+      input.click();
+      return;
+    }
+    if (btn.dataset.captionPhoto) {
+      const photo = galleries.get(id)?.find(ph => String(ph.id) === btn.dataset.captionPhoto);
+      if (!photo) return;
+      const captions = await openCaptionDialog({ photos: [photo], title: 'Légende de la photo' });
+      if (!captions) return;
+      try {
+        const res = await updatePhotoCaption(photo.id, captions[0]);
+        photo.caption = res.caption;
+        const grid = panelBody.querySelector('[data-gallery] .gallery-grid');
+        if (grid && currentId === id) renderGalleryGrid(grid, id, fullName(person));
+      } catch (err) {
+        alert(`La légende n'a pas pu être enregistrée : ${err.message}`);
+      }
+      return;
+    }
+    if (btn.dataset.deletePhoto) {
+      if (!confirm('Supprimer définitivement cette photo de la galerie ?')) return;
+      btn.disabled = true;
+      try {
+        await deleteGalleryPhoto(Number(btn.dataset.deletePhoto));
+        await reload(id);
+      } catch (err) {
+        btn.disabled = false;
+        alert(`La photo n'a pas pu être supprimée : ${err.message}`);
+      }
+      return;
+    }
 
     if (btn.dataset.add) {
       const newId = await openPersonForm({

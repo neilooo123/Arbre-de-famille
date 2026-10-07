@@ -98,8 +98,27 @@ function addSection(family, id) {
     </section>`;
 }
 
+// Galerie : les vignettes sont chargées à part (voir app.js), on prépare ici leur emplacement.
+function gallerySection(p, editing) {
+  const count = p.galleryCount ?? 0;
+  const placeholders = Array.from({ length: Math.min(count, 12) }, () => '<span class="thumb placeholder"></span>').join('');
+  return `
+    <section class="gallery" aria-labelledby="gallery-title" data-gallery>
+      <h3 id="gallery-title">Photos${count ? ` <small>(${count})</small>` : ''}</h3>
+      <div class="gallery-grid">${placeholders}</div>
+      ${count || !editing ? '' : `<p class="gallery-empty">${unknown('Aucune photo pour le moment.')}</p>`}
+      ${editing ? `
+        <button type="button" class="add-btn" data-add-photos>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Ajouter des photos
+        </button>
+        <input type="file" accept="image/*" multiple hidden data-photo-input>
+        <p class="gallery-status" role="status"></p>` : ''}
+    </section>`;
+}
+
 export function renderProfile(container, family, id, { editing = false } = {}) {
   const p = family.get(id);
+  const sexClass = p.sex === 'F' ? ' female' : p.sex === 'M' ? ' male' : '';
   const name = fullName(p);
   const feminine = p.sex === 'F';
   const born = p.sex ? (feminine ? 'Née' : 'Né') : 'Naissance';
@@ -117,9 +136,11 @@ export function renderProfile(container, family, id, { editing = false } = {}) {
 
   container.innerHTML = `
     <header class="profile-head">
-      <div class="portrait${p.sex === 'F' ? ' female' : p.sex === 'M' ? ' male' : ''}">${p.photo
-        ? `<img src="${escapeHtml(p.photo)}" alt="Portrait de ${escapeHtml(name)}">`
-        : `<span aria-hidden="true">${escapeHtml(initials(p))}</span>`}</div>
+      ${p.photo
+        ? `<button type="button" class="portrait zoomable${sexClass}" data-zoom-portrait
+             aria-label="Agrandir le portrait de ${escapeHtml(name)}" title="Agrandir la photo">
+             <img src="${escapeHtml(p.photo)}" alt="Portrait de ${escapeHtml(name)}"></button>`
+        : `<div class="portrait${sexClass}"><span aria-hidden="true">${escapeHtml(initials(p))}</span></div>`}
       <div>
         <h2 id="profile-title">${escapeHtml(name)}</h2>
         ${p.birthName ? `<p class="birthname">${born} ${escapeHtml(p.birthName)}</p>` : ''}
@@ -132,6 +153,7 @@ export function renderProfile(container, family, id, { editing = false } = {}) {
     </dl>
     ${editing ? addSection(family, id) : ''}
     <section class="videos" aria-label="Interviews">${videos}</section>
+    ${p.galleryCount || editing ? gallerySection(p, editing) : ''}
     <section class="bio">${bio || `<p>${unknown('Histoire inconnue.')}</p>`}</section>
     ${chips('Parents', family.parentsOf(id), family)}
     ${chips(partnerLabel(family.partnersOf(id), family), family.partnersOf(id), family)}
