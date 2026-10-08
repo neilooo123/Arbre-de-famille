@@ -353,6 +353,13 @@ export function createTree(svg, family, { onSelect } = {}) {
       <stop offset="0.55" stop-color="var(--wood-light)"/>
       <stop offset="1" stop-color="var(--bark)"/>
     </linearGradient>
+    <!-- Cadre doré de la personne sélectionnée -->
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F6E3A1"/>
+      <stop offset="0.35" stop-color="#D4A93C"/>
+      <stop offset="0.6" stop-color="#F3D67A"/>
+      <stop offset="1" stop-color="#A87C1E"/>
+    </linearGradient>
     <clipPath id="medallion"><circle r="${R - 6}"/></clipPath>
     <radialGradient id="hill-wash" cx="0.5" cy="0.45" r="0.5">
       <stop offset="0" class="hill-wash-stop" stop-opacity="0.55"/>
@@ -491,6 +498,8 @@ export function createTree(svg, family, { onSelect } = {}) {
     sway.append(el('circle', { class: 'halo', r: R + 7 }));
     sway.append(el('circle', { class: 'shadow', r: R, cy: 3 }));
     sway.append(el('circle', { class: 'frame', r: R }));
+    // Cadre doré par-dessus le cadre habituel, visible seulement quand la personne est sélectionnée.
+    sway.append(el('circle', { class: 'frame-gold', r: R }));
     sway.append(el('circle', { class: 'inner', r: R - 6 }));
     if (person.photo) {
       sway.append(el('image', {

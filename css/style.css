@@ -267,7 +267,11 @@ body {
 .node .halo { fill: none; stroke: transparent; stroke-width: 4; transition: stroke 0.2s; }
 .node:hover .halo { stroke: var(--leaf-2); }
 .node:focus-visible .halo { stroke: var(--focus); }
-.node.selected .halo { stroke: var(--moss); stroke-width: 5; }
+.node.selected .halo { stroke: #E2BC55; stroke-width: 5; }
+/* Personne sélectionnée : son médaillon devient doré (fondu à l'entrée et à la sortie). */
+.node .frame-gold { fill: url(#gold); opacity: 0; transition: opacity 0.35s ease; pointer-events: none; }
+.node.selected .frame-gold { opacity: 1; }
+.node.selected .initials, .node.selected.female .initials, .node.selected.male .initials { fill: #9A7020; }
 
 .node .shadow { fill: rgba(50, 35, 20, 0.28); }
 .node .frame { fill: url(#wood); }
