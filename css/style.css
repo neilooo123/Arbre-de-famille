@@ -888,6 +888,10 @@ button.portrait:hover { transform: scale(1.04); }
 .person-form {
   width: min(620px, calc(100% - 24px));
   max-height: calc(100% - 24px);
+  /* Téléphone : la hauteur réellement visible (barre d'adresse comprise), et un seul défilement,
+     celui du formulaire ; la fenêtre elle-même ne défile pas. */
+  max-height: calc(100dvh - 24px);
+  overflow: hidden;
   padding: 0;
   border: 0;
   border-radius: 16px;
@@ -896,14 +900,14 @@ button.portrait:hover { transform: scale(1.04); }
   box-shadow: 0 24px 60px rgba(30, 20, 10, 0.35);
 }
 .person-form::backdrop { background: rgba(30, 25, 20, 0.45); }
-.person-form form { display: flex; flex-direction: column; max-height: calc(100vh - 24px); }
+.person-form form { display: flex; flex-direction: column; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); }
 .person-form header {
   padding: 22px 24px 10px;
   border-top: 12px solid var(--wood);
 }
 .person-form h2 { margin: 0; font-family: var(--font-title); font-size: 1.8rem; font-weight: 600; }
 .person-form header p { margin: 2px 0 0; color: var(--ink-soft); }
-.form-body { padding: 8px 24px 4px; overflow-y: auto; display: grid; gap: 12px; }
+.form-body { padding: 8px 24px 4px; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 12px; }
 .person-form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
 @media (max-width: 560px) { .person-form .row { grid-template-columns: 1fr; } }
 .field { display: grid; gap: 4px; margin: 0; min-width: 0; }
@@ -1391,7 +1395,7 @@ button.portrait:hover { transform: scale(1.04); }
 .admin-sent { margin: 0 0 8px; font-size: 1.05rem; }
 .admin-status { margin: 0; line-height: 1.55; }
 .admin-space { width: min(720px, calc(100% - 24px)); }
-.admin-space .space { display: flex; flex-direction: column; max-height: calc(100vh - 24px); }
+.admin-space .space { display: flex; flex-direction: column; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); }
 .admin-space h3 { margin: 6px 0 8px; font-family: var(--font-title); font-size: 1.3rem; color: var(--bark); }
 .admin-space section + section { margin-top: 10px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--bark) 15%, transparent); }
 .admin-row {
