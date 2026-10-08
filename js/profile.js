@@ -130,6 +130,7 @@ function gallerySection(p, canAdd) {
   return `
     <section class="gallery" aria-labelledby="gallery-title" data-gallery>
       <h3 id="gallery-title">Photos${count ? ` <small>(${count})</small>` : ''}</h3>
+      ${count ? '<div class="gallery-tabs" role="tablist" aria-label="Galeries"></div>' : ''}
       <div class="gallery-grid">${placeholders}</div>
       ${count ? '' : `<p class="gallery-empty">${unknown('Aucune photo pour le moment.')}</p>`}
       ${canAdd ? `

@@ -78,7 +78,6 @@ async function loadGallery(id) {
   renderGalleryGrid(grid, id, name);
 }
 
-// Vignettes (avec leur légende) et, en mode édition, les boutons ✎ (légende) et ✕ (supprimer).
 // Autres personnes présentes sur une photo (celle qui l'a dans sa galerie + les personnes identifiées),
 // sans la personne dont on regarde la fiche.
 function photoPeople(ph, id) {
@@ -87,33 +86,62 @@ function photoPeople(ph, id) {
     .map(p => ({ id: p, name: fullName(family.get(p)) }));
 }
 
-// Noms en gras, chacun menant à la fiche de la personne.
-const peopleLinks = people => people
-  .map(p => `<a class="person-link" href="#/personne/${encodeURIComponent(p.id)}">${escapeHtml(p.name)}</a>`)
-  .join(', ');
+// Deux galeries, comme les onglets d'un profil Instagram :
+//  - « Photos uniques » : la photo est dans la galerie de cette personne et personne d'autre n'y est identifié ;
+//  - « Photos communes » : la photo concerne aussi d'autres membres de la famille.
+const isShared = (ph, id) => photoPeople(ph, id).length > 0;
+let galleryTab = null;   // onglet choisi ('unique' ou 'commune'), gardé d'une fiche à l'autre
 
+function galleryList(id) {
+  const all = galleries.get(id) ?? [];
+  return all.filter(ph => (galleryTab === 'commune') === isShared(ph, id));
+}
+
+const TAB_ICONS = {
+  unique: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M4 16h16M10 4v16M16 4v16"/></svg>',
+  commune: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="9" r="3.2"/><circle cx="16.5" cy="10" r="2.6"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5M14 14.6c.8-.4 1.6-.6 2.5-.6 2.2 0 3.9 1.5 4.4 4"/></svg>',
+};
+
+// Onglets (avec le nombre de photos) puis la grille de vignettes, trois par ligne.
+// La légende et les personnes n'apparaissent qu'en ouvrant la photo.
 function renderGalleryGrid(grid, id, name) {
-  grid.innerHTML = galleries.get(id).map((ph, i) => {
-    const label = ph.caption ? 'Modifier la légende' : 'Ajouter une légende';
+  const all = galleries.get(id) ?? [];
+  const counts = { unique: all.filter(ph => !isShared(ph, id)).length, commune: all.filter(ph => isShared(ph, id)).length };
+  // Par défaut, l'onglet qui a des photos.
+  if (!galleryTab || (!counts[galleryTab] && counts[galleryTab === 'unique' ? 'commune' : 'unique'])) {
+    galleryTab = counts.unique || !counts.commune ? 'unique' : 'commune';
+  }
+  const tabs = grid.parentElement.querySelector('.gallery-tabs');
+  if (tabs) {
+    tabs.innerHTML = [['unique', 'Photos uniques'], ['commune', 'Photos communes']].map(([key, label]) => `
+      <button type="button" role="tab" data-gallery-tab="${key}" aria-selected="${galleryTab === key}">
+        ${TAB_ICONS[key]}<span>${label}</span><small>${counts[key]}</small>
+      </button>`).join('');
+  }
+
+  const list = galleryList(id);
+  if (!list.length) {
+    grid.innerHTML = `<p class="gallery-empty">${galleryTab === 'commune'
+      ? 'Aucune photo partagée avec d’autres membres de la famille.'
+      : 'Aucune photo où cette personne est seule.'}</p>`;
+    return;
+  }
+  grid.innerHTML = list.map((ph, i) => {
+    const label = ph.caption ? 'Modifier la légende et les personnes' : 'Ajouter une légende et des personnes';
     const people = photoPeople(ph, id);
+    const description = [ph.caption, people.length ? `avec ${people.map(p => p.name).join(', ')}` : ''].filter(Boolean).join(', ');
     return `
     <figure class="thumb-wrap">
-      <div class="thumb-box">
       <button type="button" class="thumb" data-photo-index="${i}"
-              aria-label="Agrandir la photo ${i + 1} de ${escapeHtml(name)}${ph.caption ? ` : ${escapeHtml(ph.caption)}` : ''}">
+              aria-label="Agrandir la photo ${i + 1} de ${escapeHtml(name)}${description ? ` : ${escapeHtml(description)}` : ''}">
         <img src="${escapeHtml(ph.thumb)}" alt="" loading="lazy">
       </button>
+      ${people.length ? `<span class="thumb-shared" aria-hidden="true">${TAB_ICONS.commune}</span>` : ''}
       ${isEditing() ? `
         <button type="button" class="thumb-tool thumb-caption" data-caption-photo="${ph.id}" aria-label="${label}" title="${label}">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg></button>
         <button type="button" class="thumb-tool thumb-delete" data-delete-photo="${ph.id}" aria-label="Supprimer cette photo" title="Supprimer cette photo">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : ''}
-      </div>
-      <figcaption>
-        ${ph.caption ? `<span class="photo-caption">${escapeHtml(ph.caption)}</span>` : ''}
-        ${people.length ? `<span class="photo-people">Avec ${peopleLinks(people)}</span>` : ''}
-        ${!ph.caption && !people.length ? '<span class="photo-caption unknown">Sans légende</span>' : ''}
-      </figcaption>
     </figure>`;
   }).join('');
 }
@@ -405,11 +433,17 @@ function setupControls() {
 
   // Boutons de la fiche : « Modifier la fiche », « Supprimer », « + Conjoint », « + Enfant »…
   panelBody.addEventListener('click', async e => {
-    const btn = e.target.closest('[data-add], [data-action], [data-zoom-portrait], [data-photo-index], [data-delete-photo], [data-caption-photo], [data-add-photos], [data-union-partner]');
+    const btn = e.target.closest('[data-add], [data-action], [data-zoom-portrait], [data-photo-index], [data-delete-photo], [data-caption-photo], [data-add-photos], [data-union-partner], [data-gallery-tab]');
     if (!btn || !currentId) return;
     const id = currentId;
     const person = family.get(id);
 
+    if (btn.dataset.galleryTab) {
+      galleryTab = btn.dataset.galleryTab;
+      const grid = panelBody.querySelector('[data-gallery] .gallery-grid');
+      if (grid) renderGalleryGrid(grid, id, fullName(person));
+      return;
+    }
     if (btn.dataset.zoomPortrait !== undefined) {
       // La vignette s'affiche tout de suite, le portrait en grand se charge par-dessus.
       openLightbox({ items: [{ thumb: person.photo, load: () => fetchPortrait(id, access) }], title: fullName(person) });
@@ -417,7 +451,7 @@ function setupControls() {
     }
     if (btn.dataset.photoIndex !== undefined) {
       openLightbox({
-        items: (galleries.get(id) ?? []).map(ph => ({
+        items: galleryList(id).map(ph => ({
           thumb: ph.thumb, caption: ph.caption, load: () => fetchFullPhoto(ph.id, access),
           people: photoPeople(ph, id),
         })),
