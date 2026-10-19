@@ -1,13 +1,14 @@
-# Garde la base Supabase active : sur l'offre gratuite, un projet sans aucune visite pendant 7 jours
-# est mis en pause (l'arbre ne se charge plus). Cette tâche appelle tous les 3 jours la fonction
-# « ping » de la base, qui répond seulement « je suis là » (aucune donnée de la famille).
+# Garde la base Supabase active : sur l'offre gratuite, un projet sans activité suffisante pendant
+# 7 jours est mis en pause (l'arbre ne se charge plus). Un appel en lecture tous les 3 jours n'a pas
+# suffi (avertissement de Supabase le 19/10/2026) : cette tâche passe maintenant chaque jour, et la
+# fonction « ping » écrit un petit « battement de cœur » dans la base (aucune donnée de la famille).
 # Lancement manuel possible : onglet Actions → « Garder Supabase actif » → Run workflow.
 
 name: Garder Supabase actif
 
 on:
   schedule:
-    - cron: '17 6 */3 * *'   # tous les 3 jours, vers 8 h (heure de Paris)
+    - cron: '17 6 * * *'   # chaque jour, vers 8 h (heure de Paris)
   workflow_dispatch:
 
 permissions:
@@ -30,6 +31,9 @@ jobs:
               -H "apikey: $KEY" -H "Content-Type: application/json" -d '{}') || true
             echo "Réponse : $RESPONSE"
             if echo "$RESPONSE" | grep -q '"ok" *: *true'; then
+              # Le service de connexion compte aussi comme activité du projet.
+              curl -sS --max-time 30 -o /dev/null -w "Service de connexion : HTTP %{http_code}\n" \
+                "$URL/auth/v1/health" -H "apikey: $KEY" || true
               echo "La base est active."
               exit 0
             fi
