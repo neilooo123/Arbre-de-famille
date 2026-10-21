@@ -239,6 +239,8 @@ body {
   stroke-linecap: round;
 }
 
+/* Feuillage décoratif (ne tombe jamais) : un peu plus discret que les feuilles qui tombent. */
+.leaf-static { opacity: 0.9; }
 .leaf-1 { fill: var(--leaf-1); }
 .leaf-2 { fill: var(--leaf-2); }
 .leaf-3 { fill: var(--leaf-3); }
@@ -306,7 +308,7 @@ body {
 
 /* Vue de loin : noms et feuilles masqués, ils réapparaissent en zoomant. */
 #tree.calm.far .node text,
-#tree.calm.far .leaves { display: none; }
+#tree.calm.far .leaves, #tree.calm.far .foliage { display: none; }
 
 /* ---------- Commandes & aide ---------- */
 

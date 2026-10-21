@@ -371,9 +371,10 @@ export function createTree(svg, family, { onSelect } = {}) {
   const scene = el('g', { class: 'scene' });
   const ground = el('g', { class: 'ground' });
   const branches = el('g', { class: 'branches' });
+  const foliage = el('g', { class: 'foliage' });   // feuilles décoratives, qui ne tombent jamais
   const leaves = el('g', { class: 'leaves' });
   const nodes = el('g', { class: 'nodes' });
-  scene.append(ground, branches, leaves, nodes);
+  scene.append(ground, branches, foliage, leaves, nodes);
   svg.append(scene);
 
   // Éléments masqués quand ils sortent de l'écran (indispensable pour les grands arbres).
@@ -482,6 +483,23 @@ export function createTree(svg, family, { onSelect } = {}) {
 
   // Les feuilles finissent au sol : c'est là qu'on les cherche pour le masquage hors écran.
   cullable.push(...fallingLeaves);
+
+  // Feuillage qui reste sur l'arbre (décor) : un petit bouquet de 2 ou 3 feuilles au bout de chaque
+  // brindille, pour que l'arbre garde de la vie même quand les feuilles qui tombent sont au sol.
+  for (const [k, a] of anchors.entries()) {
+    const count = 2 + (rand() < 0.45 ? 1 : 0);
+    for (let j = 0; j < count; j++) {
+      const spread = j === 2 ? 0 : (j === 0 ? -1 : 1) * (28 + rand() * 22);
+      const angle = a.angle + spread + (rand() - 0.5) * 16;
+      const scale = (j === 2 ? 0.55 : 0.62) + rand() * 0.3;
+      const leaf = el('path', {
+        d: LEAF, class: `leaf-static leaf-${1 + ((k + j) % 3)}`,
+        transform: `translate(${a.x.toFixed(1)} ${a.y.toFixed(1)}) rotate(${angle.toFixed(1)}) scale(${scale.toFixed(2)})`,
+      });
+      foliage.append(leaf);
+      cullable.push({ el: leaf, x: a.x, y: a.y, shown: true });
+    }
+  }
 
   // Personnes.
   const nodeById = new Map();
